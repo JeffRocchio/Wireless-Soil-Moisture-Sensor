@@ -1,0 +1,206 @@
+3/25/2002 at 5:30pm
+
+Below is the terminal output resulting from running the
+install.sh script I downloaded from
+https://github.com/nRF24/RF24/blob/master/docs/linux_install.md
+
+(To get install.sh onto my Pi using my SSH shell, I had to execute:
+(pi@raspberrypi:~/myRF24 $ curl https://raw.githubusercontent.com/nRF24/.github/main/installer/install.sh > install.sh
+(For some unknown reason trying to use wget didn't work - wget just kept timing out. I tried wget on my
+(desktop PC and worked just fine. And could do a ping to that domain on the Pi and that worked just fine;
+(I could even wget a tiny file at google and that worked fine. But this install.sh file just kept
+timing out.)
+
+==========================================================================================================================
+
+pi@raspberrypi:~/myRF24 $ ./install.sh
+
+RF24 libraries installer by TMRh20 and 2bndy5
+report issues at https://github.com/nRF24/RF24/issues
+
+******************** NOTICE **********************
+This installer will create a 'rf24libs' folder for installation of selected libraries
+To prevent mistaken deletion, users must manually delete existing library folders within 'rf24libs' if upgrading
+Run 'sudo rm -r rf24libs' to clear the entire directory
+
+Creating rf24libs folder.
+Installing cmake from apt-get
+Reading package lists... Done
+Building dependency tree... Done
+Reading state information... Done
+The following additional packages will be installed:
+  cmake-data libarchive13 libjsoncpp24 librhash0
+Suggested packages:
+  cmake-doc ninja-build lrzip
+The following NEW packages will be installed:
+  cmake cmake-data libarchive13 libjsoncpp24 librhash0
+0 upgraded, 5 newly installed, 0 to remove and 0 not upgraded.
+Need to get 5,335 kB of archives.
+After this operation, 28.7 MB of additional disk space will be used.
+Do you want to continue? [Y/n] Y
+Get:1 http://archive.raspberrypi.org/debian bullseye/main armhf cmake-data all 3.18.4-2+rpt1+rpi1 [1,726 kB]
+Get:2 http://mirror.pit.teraswitch.com/raspbian/raspbian bullseye/main armhf libarchive13 armhf 3.4.3-2 [294 kB]
+Get:5 http://archive.raspberrypi.org/debian bullseye/main armhf cmake armhf 3.18.4-2+rpt1+rpi1 [3,108 kB]
+Get:3 http://mirror.pit.teraswitch.com/raspbian/raspbian bullseye/main armhf libjsoncpp24 armhf 1.9.4-4 [67.0 kB]
+Get:4 http://mirror.pit.teraswitch.com/raspbian/raspbian bullseye/main armhf librhash0 armhf 1.4.1-2 [141 kB]
+Fetched 5,335 kB in 3s (1,691 kB/s)
+Selecting previously unselected package cmake-data.
+(Reading database ... 42529 files and directories currently installed.)
+Preparing to unpack .../cmake-data_3.18.4-2+rpt1+rpi1_all.deb ...
+Unpacking cmake-data (3.18.4-2+rpt1+rpi1) ...
+Selecting previously unselected package libarchive13:armhf.
+Preparing to unpack .../libarchive13_3.4.3-2_armhf.deb ...
+Unpacking libarchive13:armhf (3.4.3-2) ...
+Selecting previously unselected package libjsoncpp24:armhf.
+Preparing to unpack .../libjsoncpp24_1.9.4-4_armhf.deb ...
+Unpacking libjsoncpp24:armhf (1.9.4-4) ...
+Selecting previously unselected package librhash0:armhf.
+Preparing to unpack .../librhash0_1.4.1-2_armhf.deb ...
+Unpacking librhash0:armhf (1.4.1-2) ...
+Selecting previously unselected package cmake.
+Preparing to unpack .../cmake_3.18.4-2+rpt1+rpi1_armhf.deb ...
+Unpacking cmake (3.18.4-2+rpt1+rpi1) ...
+Setting up libarchive13:armhf (3.4.3-2) ...
+Setting up libjsoncpp24:armhf (1.9.4-4) ...
+Setting up librhash0:armhf (1.4.1-2) ...
+Setting up cmake-data (3.18.4-2+rpt1+rpi1) ...
+Setting up cmake (3.18.4-2+rpt1+rpi1) ...
+Processing triggers for man-db (2.9.4-2) ...
+Processing triggers for libc-bin (2.31-13+rpt2+rpi1+deb11u2) ...
+Do you want to install the RF24 library, [y/N]? Y
+Do you want to install the RF24Network library, [y/N]?
+Do you want to install the RF24Mesh library, [y/N]?
+Do you want to install the RF24Gateway library, [y/N]?
+WARNING: It is advised to remove the previously installed RF24 library first.
+        This is done to avoid Runtime conflicts.
+*** Which hardware driver library do you wish to use? ***
+1. BCM2835 Driver (aka RPi)
+2. SPIDEV (most compatible, Default)
+3. WiringPi (support deprecated)
+4. MRAA (Intel Devices)
+5. PiGPIO
+6. LittleWire
+2
+
+Installing RF24 Repo...
+Cloning into 'rf24libs/RF24'...
+remote: Enumerating objects: 8814, done.
+remote: Counting objects: 100% (4574/4574), done.
+remote: Compressing objects: 100% (1285/1285), done.
+remote: Total 8814 (delta 3376), reused 4319 (delta 3259), pack-reused 4240
+Receiving objects: 100% (8814/8814), 8.97 MiB | 756.00 KiB/s, done.
+Resolving deltas: 100% (5925/5925), done.
+
+Already on 'master'
+Your branch is up to date with 'origin/master'.
+-- The C compiler identification is GNU 10.2.1
+-- The CXX compiler identification is GNU 10.2.1
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Setting build type to 'Release' as none was specified.
+-- RF24 library version: 1.4.2
+CMake Warning at cmake/Cache.cmake:27 (message):
+  ccache is enabled but was not found.  Not using it
+Call Stack (most recent call first):
+  CMakeLists.txt:39 (include)
+
+
+-- detected SoC: BCM2835
+-- detected CPU type: armv6l
+-- tool name being used: arm-linux-gnueabihf
+-- RF24_DRIVER (set from env var) = SPIDEV
+-- Using driver: SPIDEV
+-- ready to package: librf24-SPIDEV_1.4.2-1_armhf.deb
+-- ready to package: librf24-SPIDEV-1.4.2-1.armhf.rpm
+-- Disabling IRQ pin support
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/pi/rf24libs/RF24/build
+Scanning dependencies of target rf24
+[ 20%] Building CXX object CMakeFiles/rf24.dir/RF24.cpp.o
+[ 40%] Building CXX object CMakeFiles/rf24.dir/utility/SPIDEV/gpio.cpp.o
+[ 60%] Building CXX object CMakeFiles/rf24.dir/utility/SPIDEV/spi.cpp.o
+[ 80%] Building CXX object CMakeFiles/rf24.dir/utility/SPIDEV/compatibility.cpp.o
+[100%] Linking CXX shared library librf24.so
+[100%] Built target rf24
+[100%] Built target rf24
+Install the project...
+-- Install configuration: "Release"
+-- Installing: /usr/local/include/RF24/utility/SPIDEV/includes.h
+-- Installing: /usr/local/include/RF24/utility/SPIDEV/gpio.h
+-- Installing: /usr/local/include/RF24/utility/SPIDEV/spi.h
+-- Installing: /usr/local/include/RF24/utility/SPIDEV/compatibility.h
+-- Installing: /usr/local/include/RF24/utility/SPIDEV/RF24_arch_config.h
+-- Installing: /usr/local/lib/librf24.so.1.4.2
+-- Installing: /usr/local/lib/librf24.so.1
+-- Installing: /usr/local/lib/librf24.so
+-- Installing: /usr/local/include/RF24/RF24.h
+-- Installing: /usr/local/include/RF24/nRF24L01.h
+-- Installing: /usr/local/include/RF24/printf.h
+-- Installing: /usr/local/include/RF24/RF24_config.h
+-- Installing: /usr/local/include/RF24/utility/includes.h
+-- Updating ldconfig
+
+Do you want to build the RF24 examples [Y/n]? Y
+-- The CXX compiler identification is GNU 10.2.1
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- detected SoC: BCM2835
+-- detected CPU type: armv6l
+-- tool name being used: arm-linux-gnueabihf
+-- RF24_DRIVER (set from env var) = SPIDEV
+-- Using driver: SPIDEV
+-- using RF24 library: /usr/local/lib/librf24.so
+-- Skipping interruptConfigure.cpp example as it is incompatible with selected driver library
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/pi/rf24libs/RF24/examples_linux/build
+Scanning dependencies of target scanner
+[  8%] Building CXX object CMakeFiles/scanner.dir/scanner.cpp.o
+[ 16%] Linking CXX executable scanner
+[ 16%] Built target scanner
+Scanning dependencies of target multiceiverDemo
+[ 25%] Building CXX object CMakeFiles/multiceiverDemo.dir/multiceiverDemo.cpp.o
+[ 33%] Linking CXX executable multiceiverDemo
+[ 33%] Built target multiceiverDemo
+Scanning dependencies of target manualAcknowledgements
+[ 41%] Building CXX object CMakeFiles/manualAcknowledgements.dir/manualAcknowledgements.cpp.o
+[ 50%] Linking CXX executable manualAcknowledgements
+[ 50%] Built target manualAcknowledgements
+Scanning dependencies of target acknowledgementPayloads
+[ 58%] Building CXX object CMakeFiles/acknowledgementPayloads.dir/acknowledgementPayloads.cpp.o
+[ 66%] Linking CXX executable acknowledgementPayloads
+[ 66%] Built target acknowledgementPayloads
+Scanning dependencies of target streamingData
+[ 75%] Building CXX object CMakeFiles/streamingData.dir/streamingData.cpp.o
+[ 83%] Linking CXX executable streamingData
+[ 83%] Built target streamingData
+Scanning dependencies of target gettingstarted
+[ 91%] Building CXX object CMakeFiles/gettingstarted.dir/gettingstarted.cpp.o
+[100%] Linking CXX executable gettingstarted
+[100%] Built target gettingstarted
+
+Complete! To run the example:
+cd ~/rf24libs/RF24/examples_linux/build
+sudo ./gettingstarted
+Would you like to install the unified python wrapper package (pyrf24) [y/N]?
+
+
+*** Installer Complete ***
+See http://tmrh20.github.io for documentation
+See http://tmrh20.blogspot.com for info
+
+Listing repositories in ~/rf24libs
+RF24
+pi@raspberrypi:~/myRF24 $

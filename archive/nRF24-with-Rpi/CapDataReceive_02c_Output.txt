@@ -1,0 +1,79 @@
+./CapDataReceive_02c [06-27-2022 rel 03]
+Which radio is this? Enter '0' or '1'. Defaults to '0' 0
+================ SPI Configuration ================
+CSN Pin                 = /dev/spidev0.0
+CE Pin                  = Custom GPIO22
+SPI Frequency           = 10 Mhz
+================ NRF Configuration ================
+Channel                 = 76 (~ 2476 MHz)
+RF Data Rate            = 1 MBPS
+RF Power Amplifier      = PA_LOW
+RF Low Noise Amplifier  = Enabled
+CRC Length              = 16 bits
+Address Length          = 5 bytes
+Static Payload Length   = 32 bytes
+Auto Retry Delay        = 1500 microseconds
+Auto Retry Attempts     = 15 maximum
+Packets lost on
+    current channel     = 0
+Retry attempts made for
+    last transmission   = 0
+Multicast               = Disabled
+Custom ACK Payload      = Enabled
+Dynamic Payloads        = Enabled
+Auto Acknowledgment     = Enabled
+Primary Mode            = TX
+TX address              = 0x65646f4e31
+pipe 0 ( open ) bound   = 0x65646f4e31
+pipe 1 ( open ) bound   = 0x65646f4e32
+pipe 2 (closed) bound   = 0xc3
+pipe 3 (closed) bound   = 0xc4
+pipe 4 (closed) bound   = 0xc5
+pipe 5 (closed) bound   = 0xc6
+*** PRESS 'r' to begin receiving from the other node
+*** PRESS 'q' to exit
+r
+
+Recieved 31 bytes on pipe 1 | Size of rxBytes[]: 40 || Total Size Of rxPayload struct: 32 |
+------------------------------------------------------------------------------------------------------------------------
+rxBytes in HEX / rxBytes[] index offset ---:
+53 75 63 63 65 73 73 20 20 20 00 00 00 48 41 00 01 00 00 9a 99 19 3f 2d 2d 2d 00 00 00 c8 42 42 00 00 00 00 00 00 00 00
+00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39
+------------------------------------------------------------------------------------------------------------------------
+  offset to statusText:  0
+  offset to testFloat1: 11 | Value of testFloat1=   12.50
+  offset to chargeTime: 15 | Value of chargeTime=     256
+  offset to testFloat2: 19 | Value of testFloat2=    0.60
+       offset to units: 23
+ offset to capacitance: 27 | Value of capacitance= 100.00
+
+  statusText: 11 |     Success    | 0x 53 75 63 63 65 73 73 20 20 20 00
+  testFloat1:  4 |          12.50 | 0x 00 00 48 41
+  chargeTime:  4 |            256 | 0x 00 01 00 00
+  testFloat2:  4 |           0.60 | 0x 9a 99 19 3f
+       units:  4 |            --- | 0x 2d 2d 2d 00
+ capacitance:  4 |         100.00 | 0x 00 00 c8 42
+
+ Sent in Response: Pkt Count 9
+
+Recieved 31 bytes on pipe 1 | Size of rxBytes[]: 40 || Total Size Of rxPayload struct: 32 |
+------------------------------------------------------------------------------------------------------------------------
+rxBytes in HEX / rxBytes[] index offset ---:
+45 52 52 4f 52 20 30 33 20 20 00 00 00 48 41 00 01 00 00 9a 99 19 3f 2d 2d 2d 00 00 00 c8 42 42 00 00 00 00 00 00 00 00
+00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39
+------------------------------------------------------------------------------------------------------------------------
+  offset to statusText:  0
+  offset to testFloat1: 11 | Value of testFloat1=   12.50
+  offset to chargeTime: 15 | Value of chargeTime=     256
+  offset to testFloat2: 19 | Value of testFloat2=    0.60
+       offset to units: 23
+ offset to capacitance: 27 | Value of capacitance= 100.00
+
+  statusText: 11 |     ERROR 03   | 0x 45 52 52 4f 52 20 30 33 20 20 00
+  testFloat1:  4 |          12.50 | 0x 00 00 48 41
+  chargeTime:  4 |            256 | 0x 00 01 00 00
+  testFloat2:  4 |           0.60 | 0x 9a 99 19 3f
+       units:  4 |            --- | 0x 2d 2d 2d 00
+ capacitance:  4 |         100.00 | 0x 00 00 c8 42
+
+ Sent in Response: Pkt Count 10

@@ -1,0 +1,97 @@
+./CapDataReceive_02a
+Which radio is this? Enter '0' or '1'. Defaults to '0' 0
+================ SPI Configuration ================
+CSN Pin                 = /dev/spidev0.0
+CE Pin                  = Custom GPIO22
+SPI Frequency           = 10 Mhz
+================ NRF Configuration ================
+Channel                 = 76 (~ 2476 MHz)
+RF Data Rate            = 1 MBPS
+RF Power Amplifier      = PA_LOW
+RF Low Noise Amplifier  = Enabled
+CRC Length              = 16 bits
+Address Length          = 5 bytes
+Static Payload Length   = 32 bytes
+Auto Retry Delay        = 1500 microseconds
+Auto Retry Attempts     = 15 maximum
+Packets lost on
+    current channel     = 0
+Retry attempts made for
+    last transmission   = 0
+Multicast               = Disabled
+Custom ACK Payload      = Enabled
+Dynamic Payloads        = Enabled
+Auto Acknowledgment     = Enabled
+Primary Mode            = TX
+TX address              = 0x65646f4e31
+pipe 0 ( open ) bound   = 0x65646f4e31
+pipe 1 ( open ) bound   = 0x65646f4e32
+pipe 2 (closed) bound   = 0xc3
+pipe 3 (closed) bound   = 0xc4
+pipe 4 (closed) bound   = 0xc5
+pipe 5 (closed) bound   = 0xc6
+Version: 06-20-2022 rel 02
+*** PRESS 't' to begin transmitting to the other node
+*** PRESS 'r' to begin receiving from the other node
+*** PRESS 'q' to exit
+r
+Recieved 31 bytes on pipe 1|| rxPayload struct Size: 32
+ statusText: 11 | ERROR 03   | 0x E R R O R   0 3
+ Float-1: 4 | 5.99514e-39 | 0 0H 0A 0
+ ChargeTime: size - 4 value - 2.68435e+08 Float-2: 8.1049e-39 capacitance: 48.6953 --
+ Sent in Response: World 0
+Recieved 31 bytes on pipe 1|| rxPayload struct Size: 32
+ statusText: 11 | Success    | 0x S u c c e s s
+ Float-1: 4 | 5.99514e-39 | 0 0H 0A 0
+ ChargeTime: size - 4 value - 2.85213e+09 Float-2: -1.12318e-23 capacitance: 48.6953 --
+ Sent in Response: World 1
+Recieved 31 bytes on pipe 1|| rxPayload struct Size: 32
+ statusText: 11 | Success    | 0x S u c c e s s
+ Float-1: 4 | 5.99514e-39 | 0 0H 0A 0
+ ChargeTime: size - 4 value - 1.14085e+09 Float-2: 5.10492e-08 capacitance: 48.6953 --
+ Sent in Response: World 2
+Recieved 31 bytes on pipe 1|| rxPayload struct Size: 32
+ statusText: 11 | Success    | 0x S u c c e s s
+ Float-1: 4 | 5.99514e-39 | 0 0H 0A 0
+ ChargeTime: size - 4 value - 3.72454e+09 Float-2: -5.77384e+07 capacitance: 48.6953 --
+ Sent in Response: World 3
+Recieved 31 bytes on pipe 1|| rxPayload struct Size: 32
+ statusText: 11 | Success    | 0x S u c c e s s
+ Float-1: 4 | 5.99514e-39 | 0 0H 0A 0
+ ChargeTime: size - 4 value - 2.01327e+09 Float-2: 2.62392e+23 capacitance: 48.6953 --
+ Sent in Response: World 4
+Recieved 31 bytes on pipe 1|| rxPayload struct Size: 32
+ statusText: 11 | Success    | 0x S u c c e s s
+ Float-1: 4 | 5.99514e-39 | 0 0H 0A 0
+ ChargeTime: size - 4 value - 3.0199e+08 Float-2: 8.83959e-39 capacitance: 48.6953 --
+ Sent in Response: World 5
+Recieved 31 bytes on pipe 1|| rxPayload struct Size: 32
+ statusText: 11 | Success    | 0x S u c c e s s
+ Float-1: 4 | 5.99514e-39 | 0 0H 0A 0
+ ChargeTime: size - 4 value - 2.88568e+09 Float-2: -1.16454e-23 capacitance: 48.6953 --
+ Sent in Response: World 6
+Recieved 31 bytes on pipe 1|| rxPayload struct Size: 32
+ statusText: 11 | Success    | 0x S u c c e s s
+ Float-1: 4 | 5.99514e-39 | 0 0H 0A 0
+ ChargeTime: size - 4 value - 1.17441e+09 Float-2: 5.29118e-08 capacitance: 48.6953 --
+ Sent in Response: World 7
+Recieved 31 bytes on pipe 1|| rxPayload struct Size: 32
+ statusText: 11 | ERROR 03   | 0x E R R O R   0 3
+ Float-1: 4 | 5.99514e-39 | 0 0H 0A 0
+ ChargeTime: size - 4 value - 1.17441e+09 Float-2: 5.29118e-08 capacitance: 48.6953 --
+ Sent in Response: World 8
+Recieved 31 bytes on pipe 1|| rxPayload struct Size: 32
+ statusText: 11 | Success    | 0x S u c c e s s
+ Float-1: 4 | 5.99514e-39 | 0 0H 0A 0
+ ChargeTime: size - 4 value - 3.7581e+09 Float-2: -5.98356e+07 capacitance: 48.6953 --
+ Sent in Response: World 9
+Recieved 31 bytes on pipe 1|| rxPayload struct Size: 32
+ statusText: 11 | Success    | 0x S u c c e s s
+ Float-1: 4 | 5.99514e-39 | 0 0H 0A 0
+ ChargeTime: size - 4 value - 2.04682e+09 Float-2: 2.71837e+23 capacitance: 48.6953 --
+ Sent in Response: World 10
+Recieved 31 bytes on pipe 1|| rxPayload struct Size: 32
+ statusText: 11 | Success    | 0x S u c c e s s
+ Float-1: 4 | 5.99514e-39 | 0 0H 0A 0
+ ChargeTime: size - 4 value - 3.35544e+08 Float-2: 9.57427e-39 capacitance: 48.6953 --
+ Sent in Response: World 11

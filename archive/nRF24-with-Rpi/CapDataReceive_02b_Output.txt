@@ -1,0 +1,104 @@
+./CapDataReceive_02b [06-26-2022 rel 04]
+Which radio is this? Enter '0' or '1'. Defaults to '0' 0
+================ SPI Configuration ================
+CSN Pin                 = /dev/spidev0.0
+CE Pin                  = Custom GPIO22
+SPI Frequency           = 10 Mhz
+================ NRF Configuration ================
+Channel                 = 76 (~ 2476 MHz)
+RF Data Rate            = 1 MBPS
+RF Power Amplifier      = PA_LOW
+RF Low Noise Amplifier  = Enabled
+CRC Length              = 16 bits
+Address Length          = 5 bytes
+Static Payload Length   = 32 bytes
+Auto Retry Delay        = 1500 microseconds
+Auto Retry Attempts     = 15 maximum
+Packets lost on
+    current channel     = 0
+Retry attempts made for
+    last transmission   = 0
+Multicast               = Disabled
+Custom ACK Payload      = Enabled
+Dynamic Payloads        = Enabled
+Auto Acknowledgment     = Enabled
+Primary Mode            = TX
+TX address              = 0x65646f4e31
+pipe 0 ( open ) bound   = 0x65646f4e31
+pipe 1 ( open ) bound   = 0x65646f4e32
+pipe 2 (closed) bound   = 0xc3
+pipe 3 (closed) bound   = 0xc4
+pipe 4 (closed) bound   = 0xc5
+pipe 5 (closed) bound   = 0xc6
+*** PRESS 't' to begin transmitting to the other node
+*** PRESS 'r' to begin receiving from the other node
+*** PRESS 'q' to exit
+r
+
+Recieved 31 bytes on pipe 1 | Total Size Of rxPayload: 32 || Payload bytes as HEX --: 49 6e 69 74 69 61 6c 20 00 00 00 00 00 48 41 00 01 00 00 cd cc cc 3d 2d 2d 2d 00 00 00 c8 42 42
+------------------------------------------------------------
+  statusText: 11 |       Initial  | 0x 49 6e 69 74 69 61 6c 20 00 00 00 <-- OK
+  testFloat1:  4 |          6e-39 | 0x 00 48 41 00 <-- should be 12.5
+  chargeTime:  4 |     3439329281 | 0x 01 00 00 cd <-- should be 256
+  testFloat2:  4 |        1.1e-11 | 0x cc cc 3d 2d <-- should be 0.1
+       units:  4 |             -- | 0x 2d 2d 00 00 <-- should be "---"
+ capacitance:  4 |             49 | 0x 00 c8 42 42 <-- should be 100
+
+ Sent in Response: Pkt Count 0
+
+Recieved 31 bytes on pipe 1 | Total Size Of rxPayload: 32 || Payload bytes as HEX --: 53 75 63 63 65 73 73 20 20 20 00 00 00 48 41 00 01 00 00 cd cc 4c 3e 2d 2d 2d 00 00 00 c8 42 42
+------------------------------------------------------------
+  statusText: 11 |     Success    | 0x 53 75 63 63 65 73 73 20 20 20 00
+  testFloat1:  4 |          6e-39 | 0x 00 48 41 00
+  chargeTime:  4 |     3439329281 | 0x 01 00 00 cd
+  testFloat2:  4 |        1.1e-11 | 0x cc 4c 3e 2d
+       units:  4 |             -- | 0x 2d 2d 00 00
+ capacitance:  4 |             49 | 0x 00 c8 42 42
+
+ Sent in Response: Pkt Count 1
+
+Recieved 31 bytes on pipe 1 | Total Size Of rxPayload: 32 || Payload bytes as HEX --: 53 75 63 63 65 73 73 20 20 20 00 00 00 48 41 00 01 00 00 9a 99 99 3e 2d 2d 2d 00 00 00 c8 42 42
+------------------------------------------------------------
+  statusText: 11 |     Success    | 0x 53 75 63 63 65 73 73 20 20 20 00
+  testFloat1:  4 |          6e-39 | 0x 00 48 41 00
+  chargeTime:  4 |     2583691265 | 0x 01 00 00 9a
+  testFloat2:  4 |        1.1e-11 | 0x 99 99 3e 2d
+       units:  4 |             -- | 0x 2d 2d 00 00
+ capacitance:  4 |             49 | 0x 00 c8 42 42
+
+ Sent in Response: Pkt Count 2
+
+Recieved 31 bytes on pipe 1 | Total Size Of rxPayload: 32 || Payload bytes as HEX --: 45 52 52 4f 52 20 30 33 20 20 00 00 00 48 41 00 01 00 00 9a 99 99 3e 2d 2d 2d 00 00 00 c8 42 42
+------------------------------------------------------------
+  statusText: 11 |     ERROR 03   | 0x 45 52 52 4f 52 20 30 33 20 20 00
+  testFloat1:  4 |          6e-39 | 0x 00 48 41 00
+  chargeTime:  4 |     2583691265 | 0x 01 00 00 9a
+  testFloat2:  4 |        1.1e-11 | 0x 99 99 3e 2d
+       units:  4 |             -- | 0x 2d 2d 00 00
+ capacitance:  4 |             49 | 0x 00 c8 42 42
+
+ Sent in Response: Pkt Count 3
+
+Recieved 31 bytes on pipe 1 | Total Size Of rxPayload: 32 || Payload bytes as HEX --: 45 52 52 4f 52 20 30 33 20 20 00 00 00 48 41 00 01 00 00 9a 99 99 3e 2d 2d 2d 00 00 00 c8 42 42
+------------------------------------------------------------
+  statusText: 11 |     ERROR 03   | 0x 45 52 52 4f 52 20 30 33 20 20 00
+  testFloat1:  4 |          6e-39 | 0x 00 48 41 00
+  chargeTime:  4 |     2583691265 | 0x 01 00 00 9a
+  testFloat2:  4 |        1.1e-11 | 0x 99 99 3e 2d
+       units:  4 |             -- | 0x 2d 2d 00 00
+ capacitance:  4 |             49 | 0x 00 c8 42 42
+
+ Sent in Response: Pkt Count 4
+
+Recieved 31 bytes on pipe 1 | Total Size Of rxPayload: 32 || Payload bytes as HEX --: 45 52 52 4f 52 20 30 33 20 20 00 00 00 48 41 00 01 00 00 9a 99 99 3e 2d 2d 2d 00 00 00 c8 42 42
+------------------------------------------------------------
+  statusText: 11 |     ERROR 03   | 0x 45 52 52 4f 52 20 30 33 20 20 00
+  testFloat1:  4 |          6e-39 | 0x 00 48 41 00
+  chargeTime:  4 |     2583691265 | 0x 01 00 00 9a
+  testFloat2:  4 |        1.1e-11 | 0x 99 99 3e 2d
+       units:  4 |             -- | 0x 2d 2d 00 00
+ capacitance:  4 |             49 | 0x 00 c8 42 42
+
+ Sent in Response: Pkt Count 5
+^C
+pi@raspberrypi:/home/rf24libs/RF24/examples_linux/build$
