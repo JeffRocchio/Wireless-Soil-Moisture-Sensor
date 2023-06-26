@@ -7,7 +7,7 @@
  *  /home/jroc/Dropbox/projects/MoistureSensor/CapSensor
  *  Refer to git for version history and associated comments.
  *
- *      06/20/2023: Had to change some pin mappings. I built a version of the sensor circut onto a
+ *      06/20/2023: Had to change some pin mappings. I built a version of the sensor circuit onto a
  *  perfBoard. But in doing so I mixed up one of the pins for the cap sensor with the pin for the
  *  Red LED. So I needed to change those pin definitions in here in the code.
  *
@@ -66,7 +66,7 @@ const int MAX_ADC_VALUE = 1023;
 
 #define voltReadPin    A0                 // Physical pin#13 - analog 'channel 0' for measuring voltage
 #define chargePin      PIN_PB1            // Physical pin#3 - pin to charge the capacitor - connected to one end of the charging resistor
-//#define dischargePin   PIN_PB0            // NOT USED FOR pF level measurements. [Physical pin#2 - pin to discharge the capacitor]
+//#define dischargePin   PIN_PB0          // NOT USED FOR pF level measurements. [Physical pin#2 - pin to discharge the capacitor]
 #define resistorValue  3000000.0F         // 3 Meg Ohm. For accurate calculation must match actual charging resistor value
 
 // ==== Global Variables

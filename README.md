@@ -6,5 +6,5 @@ For the initial proof of concept I am making just one sensor device, which wirel
 
 This project uses an ATTiny84 MCU and two NRF24 radio modules along with the Raspberry Pi.
 
-The folder ProjectLog contains detailed notes on all the trials, tribulations, and successes as I go. Those log entries also contain key references - such as the Arduino core using for the ATTiny84 and the github repo for the NRF24 libraries.
+The folder ProjectLog contains detailed notes on all the trials, tribulations, and successes as I go. Those log entries also contain key references - such as the Arduino core used for the ATTiny84 and the github repo for the NRF24 libraries.
 
