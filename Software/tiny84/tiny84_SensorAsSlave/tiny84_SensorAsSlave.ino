@@ -1,122 +1,112 @@
 //Moisture Sensor Project - ATTiny84 Code
 
-#define VERSION SEN_070423
-
+#define VERSION "SEN_070523"
 /*    DESCRIPTION: Arduino sketch to make the ATTiny84 MCU serve as a Slave sensor, with 
  * a Raspberry Pi as the Master - i.e., sensor server.
  *   
- *      07/04/2023: First attempt to code up a reasonable sensor behavior per the Design Notes in
+ *      07/05/2023: First attempt to code up reasonable sensor behavior per the Design Notes in
  *  milestone #12.
  *
  */
 
 // ==== PULL IN REQUIRED LIBRARIES ===============================================================
-#include <SPI.h>
-#include "RF24.h"
-#include "HeartBeat.h"
+  #include <SPI.h>
+  #include "RF24.h"
+  #include "HeartBeat.h"
 
 // ==== PROTOTYPES FOR CLASSES AND FUNCTIONS DEFINED IN THIS SOURCE FILE =========================
-
-// ==== ATTiny84 Pin Reference Definitions
-/*************************************************************************************************
- *    Define references to the logical pins we'll be using.
- *    NOTE: I am using the PIN references per SpenceKonde attiny core recommendation. The
- * pin references in the original demo code did not work for the tiny84. After working out the
- * whole Arduino core thing, and how the logical-physical pin mappings are actually defined by
- * the core's author, I went to the SpenceKonde github and inspected his documentation, in
- * which he states that for digital pins, use the 'logical' port numbering schema - 
- *  e.g., "PIN_PA#" or PIN_PB#." For the analog pins use the analog channel number as shown on
- *  the pinout diagram. E.g., use 'A7' for ADC7, physical pin #6; 'A0' for ADC0, physical pin 13.
- *    BUT note that I am currently using core 1.5.2; for version 2.0.0 of the core the pin
- *  reference scheme is being updated to a more commonly used schema. So watch for this.
- */
-
-  /* Hard-wired LEDs */
-#define LED_GREEN PIN_PA1  // Physical pin #12 The pin that a green led is wired to
-#define LED_ERROR PIN_PB2  // Physical pin #5. The pin that a red led is wired to
-
-  /* Hard-wired pins of nRF24 chip to the ATTiny84 */
-#define CE_PIN PIN_PA2
-#define CSN_PIN PIN_PA3
-
-  /* Hard-wired pins for capacitance measurement. */
-#define CAP_VOLTREAD_PIN A0        // Physical pin#13 - analog 'channel 0' for measuring voltage
-#define CAP_CHARGE_PIN   PIN_PB1   // Physical pin#3 - pin to charge the capacitor - connected to one end of the charging resistor
+// END Prototypes
 
 
-// CREATE GLOBAL VARIABLES =======================================================================
 
-  /* Global objects */
-HeartBeat heartBeat(LED_GREEN);  // Instantiate a HeartBeat object.
-RF24 radio(CE_PIN, CSN_PIN);     // instantiate an object for the nRF24L01 transceiver.
+// ==== PIN REFERENCES. (For ATTiny84 Pin Reference guidance see footnote #1 at bottom of this file.)
 
-  /* Global variables needed For capacitance measurement */
-const float IN_STRAY_CAP_TO_GND = 24.48;  // Stray capacitance, used as 'C1' in schematic. 
-const float IN_EXTRA_CAP_TO_GND = 0.0;    // Extra capacitance can be added to measure higher values.
-const float IN_CAP_TO_GND  = IN_STRAY_CAP_TO_GND + IN_EXTRA_CAP_TO_GND;
-const int MAX_ADC_VALUE = 1023;
+    /* Hard-wired LEDs */
+  #define LED_GREEN PIN_PA1  // Physical pin #12 The pin that a green led is wired to
+  #define LED_ERROR PIN_PB2  // Physical pin #5. The pin that a red led is wired to
 
+    /* Hard-wired pins of nRF24 chip to the ATTiny84 */
+  #define CE_PIN PIN_PA2
+  #define CSN_PIN PIN_PA3
 
-  /* ==== oTHER Global Variables */
-  /*************************************************************************************************
-   *    Being sloppy here as I experiment and learn, relative to relying heavily on
-   * globals. Although, my mindset clearly comes from desktop/server coding. Perhaps efficient
-   * coding on an MCU is paradigmatically different vis-a-vis globals? */
+    /* Hard-wired pins for capacitance measurement. */
+  #define CAP_VOLTREAD_PIN A0        // Physical pin#13 - analog 'channel 0' for measuring voltage
+  #define CAP_CHARGE_PIN   PIN_PB1   // Physical pin#3 - pin to charge the capacitor - connected to one end of the charging resistor
 
-  /* nRF24:    
-   *    Declare an array to hold node addresses. In this case we have only two nodes -
-   * the RPi and this node, the tiny84.
-   *    NOTE from original source: "It is very helpful to think of an address as a path 
-   * instead of as an identifying device destination."
-   *    Jeff Comment: I don't really understand how these "addresses" are used, this 
-   * needs further rabbit-holing my me at some point. */
-uint8_t address[][6] = {"1Node", "2Node"};
+// END Pin References
 
-  /* nRF24:    
-   *    Comment in original source: "To use different addresses on a pair of radios
-   * we need a variable to uniquely identify which address this radio will use to 
-   * transmit."
-   *    This variable is used later to de-reference an entry in the address[][] array
-   * declared above. */
-bool radioNumber = 1;             // 0 uses address[0] to transmit, 1 uses address[1] to transmit
+// DECLARE GLOBAL VARIABLES =======================================================================
 
-  /* nRF24: Used to control whether this node is sending or receiving. */
-bool role = true;                 // true = TX role, false = RX role
+    /* Global Classes (objects) */
+  HeartBeat heartBeat(LED_GREEN);  // Instantiate a HeartBeat object.
+  RF24 radio(CE_PIN, CSN_PIN);     // instantiate an object for the nRF24L01 transceiver.
 
-  /* nRF24:     
-   *    Define, and declare, a struct to hold the transmit payload.
-   *    NOTE: This struct must match the 'receive' payload structure declared on
-   * the RPi side. */
-struct TxPayloadStruct {
-  float capacitance;
-  uint32_t chargeTime;            // Time it took for capacitor to charge.
-  char units[4];                  // nFD, mFD, FD
-  uint32_t ctSuccess;             // count of success Tx attempts tiny84 has seen since boot
-  uint32_t ctErrors;              // count of Tx errors tiny84 saw since last successful transmit
-  char statusText[12];            // For use in debugging. Be sure there is space for a NULL terminating char
+    /* Global variables needed For capacitance measurement */
+  const float IN_STRAY_CAP_TO_GND = 24.48;  // Stray capacitance, used as 'C1' in schematic. 
+  const float IN_EXTRA_CAP_TO_GND = 0.0;    // Extra capacitance can be added to measure higher values.
+  const float IN_CAP_TO_GND  = IN_STRAY_CAP_TO_GND + IN_EXTRA_CAP_TO_GND;
+  const int MAX_ADC_VALUE = 1023;
 
-};
-TxPayloadStruct txPayload;
+  /* Other Global Variables */
+    /*    Being sloppy here as I experiment and learn, relative to relying heavily on
+    * globals. Although, my mindset clearly comes from desktop/server coding. Perhaps efficient
+    * coding on an MCU is paradigmatically different vis-a-vis globals? */
 
-  /* nRF24:     
-   *    Define, and declare, a struct to hold the acknowledgement payload.
-   *    NOTE: This struct must match the 'ack' payload structure declared on
-   * the RPi side. */
-struct RxPayloadStruct {
-  char message[11];               // Incoming message up to 10 chrs+Null.
-  uint8_t counter;
-};
-RxPayloadStruct rxAckPayload;
+    /* nRF24:    
+    *    Declare an array to hold node addresses. In this case we have only two nodes -
+    * the RPi and this node, the tiny84.
+    *    NOTE from original source: "It is very helpful to think of an address as a path 
+    * instead of as an identifying device destination."
+    *    Jeff Comment: I don't really understand how these "addresses" are used, this 
+    * needs further rabbit-holing my me at some point. */
+  uint8_t address[][6] = {"1Node", "2Node"};
 
+    /* nRF24:    
+    *    Comment in original source: "To use different addresses on a pair of radios
+    * we need a variable to uniquely identify which address this radio will use to 
+    * transmit."
+    *    This variable is used later to de-reference an entry in the address[][] array
+    * declared above. */
+  bool radioNumber = 1;             // 0 uses address[0] to transmit, 1 uses address[1] to transmit
+
+    /* nRF24: Used to control whether this node is sending or receiving. */
+  bool role = true;                 // true = TX role, false = RX role
+
+    /* nRF24:     
+    *    Define, and declare, a struct to hold the transmit payload.
+    *    NOTE: This struct must match the 'receive' payload structure declared on
+    * the RPi side. */
+  struct TxPayloadStruct {
+    float capacitance;
+    uint32_t chargeTime;            // Time it took for capacitor to charge.
+    char units[4];                  // nFD, mFD, FD
+    uint32_t ctSuccess;             // count of success Tx attempts tiny84 has seen since boot
+    uint32_t ctErrors;              // count of Tx errors tiny84 saw since last successful transmit
+    char statusText[12];            // For use in debugging. Be sure there is space for a NULL terminating char
+
+  };
+  TxPayloadStruct txPayload;
+
+    /* nRF24:     
+    *    Define, and declare, a struct to hold the acknowledgement payload.
+    *    NOTE: This struct must match the 'ack' payload structure declared on
+    * the RPi side. */
+  struct RxPayloadStruct {
+    char message[11];               // Incoming message up to 10 chrs+Null.
+    uint8_t counter;
+  };
+  RxPayloadStruct rxAckPayload;
+
+// END Declare Global Variables
 
 
 
 // ==== SETUP PROCEDURE===========================================================================
 void setup() {
 
-  heartBeat.begin(); // Start the heartbeat LED.
+  heartBeat.begin();                        // Start the heartbeat LED. Keep it lit for entire setup() process.
+
   pinMode(LED_ERROR, OUTPUT);
-  digitalWrite(LED_ERROR, HIGH);
 
 
     /*    Init capacitance measurement pins. */
@@ -269,7 +259,7 @@ void capacitorMeasurement(TxPayloadStruct * pLoad) {
   memcpy(pLoad->units, "pF ", 3);
   pLoad->capacitance = capacitance;
   //memcpy(pLoad->statusText, "07-04      ", 11);
-  //memcpy(pLoad->statusText, "VERSION", size_t("VERSION"));
+  memcpy(pLoad->statusText, VERSION, size_t(VERSION));
 }
 
 
@@ -287,4 +277,17 @@ void errorLED (int errorNo) {
   digitalWrite(LED_ERROR, HIGH);          // Show RED on for a bit before counting out the error number.
 } // errorLED
 
+
+//*************************************************************************************************
+// FOOTNOTES
+//*************************************************************************************************
+
+   /*   1. When compiling you might see this warning: #warning "This is the CLOCKWISE pin 
+      mapping - make sure you're using the pinout diagram with the pins in clockwise order" <- As 
+      long as all pin references are in the SpenceKonde attiny core recommended form then ignore
+      the warning. In fact, no matter which core variant you use you'll get a warning either way.
+      Pin references should be of the form: "PIN_PA#" or PIN_PB#," for digital pins. For the 
+      analog pins use the analog channel number as shown on the pinout diagram. E.g., use 
+      'A7' for ADC7, physical pin #6; 'A0' for ADC0, physical pin 13. 
+   */
 

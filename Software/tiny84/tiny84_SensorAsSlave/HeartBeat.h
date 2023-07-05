@@ -1,3 +1,6 @@
+// Class: HeartBeat - Definition
+//=================================================================================================
+
 #ifndef HeartBeat_h
 #define HeartBeat_h
 

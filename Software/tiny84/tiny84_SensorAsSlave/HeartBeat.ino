@@ -1,7 +1,9 @@
+// Class: HeartBeat - Function Definitions
+//=================================================================================================
+
 #include "Arduino.h"
 #include "HeartBeat.h"
 
-// Class: HeartBeat - Function Definitions
  /************************************************************************************************
  *    PURPOSE: Blink green LED to show that the MCU is running through the main loop. That is, it 
  *  is UP and running. Even if there is a current error condition, my goal here is to indicate 
