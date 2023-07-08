@@ -60,10 +60,12 @@ class ErrorFlash {
            *  the error LED. */
 
     short int getErrorID();
-          /*    PURPOSE: Can be used in the sktech to determine if an
-           *  error condition is currently being reported out, and if so,
-           *  obtain it's ID# (maybe for use, e.g., to transmit that info
-           *  over to the sensor-master server (RPi).*/
+          /*    PURPOSE: Can be used in the sktech to obtain the 
+           *  current error number. Will return 0 if no error. BUT
+           *  note that I don't automatically clear the error after
+           *  flashing out it's number. The error info will stay in
+           *  the object's data fields until a new error is initiated,
+           *  or explicitly cleared by the using application. */
 
     bool isFlashing();
           /*    PURPOSE: Use to test if an error is in processes of being

@@ -105,7 +105,16 @@ void ErrorFlash::update() {
 
 } // END update()
 
+short int ErrorFlash::getErrorID() {
+          /*    PURPOSE: Can be used in the sktech to obtain the 
+           *  current error number. Will return 0 if no error. BUT
+           *  note that I don't automatically clear the error after
+           *  flashing out it's number. The error info will stay in
+           *  the object's data fields until a new error is initiated,
+           *  or explicitly cleared by the using application. */
 
+  return _curErrID;
+}
 
 bool ErrorFlash::isFlashing() {
 

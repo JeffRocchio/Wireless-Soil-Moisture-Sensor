@@ -1,18 +1,23 @@
 //Moisture Sensor Project - ATTiny84 Code
 
-#define VERSION "SEN_070523"
+#define VERSION "SEN_070623"
 /*    DESCRIPTION: Arduino sketch to make the ATTiny84 MCU serve as a Slave sensor, with 
  * a Raspberry Pi as the Master - i.e., sensor server.
+ *
+ *    FOOTNOTES: Note that there are 'footnotes' at the bottom of this file that provide more
+ *  detailed info and documentation that I didn't want to clutter up the code with; but which
+ *  I am likely to want to remember when I come back to this in 6 months.  : ) 
  *   
- *      07/05/2023: First attempt to code up reasonable sensor behavior per the Design Notes in
+ *      07/06/2023: First attempt to code up reasonable sensor behavior per the Design Notes in
  *  milestone #12.
  *
  */
 
 // ==== PULL IN REQUIRED LIBRARIES ===============================================================
+  #include "HeartBeat.h"
+  #include "ErrorFlash.h"
   #include <SPI.h>
   #include "RF24.h"
-  #include "HeartBeat.h"
 
 // ==== PROTOTYPES FOR CLASSES AND FUNCTIONS DEFINED IN THIS SOURCE FILE =========================
 // END Prototypes
@@ -38,8 +43,9 @@
 // DECLARE GLOBAL VARIABLES =======================================================================
 
     /* Global Classes (objects) */
-  HeartBeat heartBeat(LED_GREEN);  // Instantiate a HeartBeat object.
-  RF24 radio(CE_PIN, CSN_PIN);     // instantiate an object for the nRF24L01 transceiver.
+  ErrorFlash errorFlash(LED_ERROR); // Instantiate an error reporting object.
+  HeartBeat heartBeat(LED_GREEN);   // Instantiate a HeartBeat object.
+  RF24 radio(CE_PIN, CSN_PIN);      // instantiate an object for the nRF24L01 transceiver.
 
     /* Global variables needed For capacitance measurement */
   const float IN_STRAY_CAP_TO_GND = 24.48;  // Stray capacitance, used as 'C1' in schematic. 
@@ -105,6 +111,7 @@
 void setup() {
 
   heartBeat.begin();                        // Start the heartbeat LED. Keep it lit for entire setup() process.
+  errorFlash.begin();                       // Start the error reporting-out-by-flashing-LED process.
 
   pinMode(LED_ERROR, OUTPUT);
 
@@ -120,8 +127,9 @@ void setup() {
      * with the LEDs. */
   if (!radio.begin()) {
     while (1) {
-        errorLED (9);                 // Call this error #9.
-      } // end while
+      errorFlash.setError(9);              // Call this error #9.
+      errorFlash.update();
+    }
   }
 
     /* Set the PA Level low to try preventing power supply related problems
@@ -151,17 +159,17 @@ void setup() {
      * will always be 'the opposite' of each other. */
   radio.openReadingPipe(1, address[!radioNumber]);  // using pipe 1 to receive.
 
+    /* Put radio in transmit mode. */
+  radio.stopListening();
+
+
     /* Load the txPayload structure with initial defaults. */
   txPayload.capacitance = 0;                        // calculated capacitance
   txPayload.chargeTime = 0;                         // Time it took for capacitor to charge.
   memcpy(txPayload.units, "---", 3);                // capacitance units
   txPayload.ctSuccess = 0;                          // running count of no-error transmissions
   txPayload.ctErrors = 0;                           // running count of transmissions errors
-  memcpy(txPayload.statusText, "Initial ", 8);      // status message
-
-    /* Put radio in transmit mode. */
-  radio.stopListening();
-
+  memcpy(pLoad->statusText, VERSION, size_t(VERSION));
 
 } // END setup()
 
@@ -173,58 +181,45 @@ void setup() {
  * transmitting data, seeking a valid acknowlegement of receipt; then repeat....
  */
 void loop() {
-  unsigned long start_timer = micros();                         // time the Tx cycle - obtain start time
-  bool report = radio.write(&txPayload, sizeof(txPayload));     // attempt transmit - obtaining 'success' or 'timeout' result
-                                                                /*    FROM the RF24.h file, documentation on the return value of 
-                                                                 *  this function: Returns`true` if the payload was delivered 
-                                                                 *  successfully and an acknowledgement (ACK packet) was received. 
-                                                                 *  If auto-ack is disabled, then any attempt to transmit will 
-                                                                 *  also return true (even if the payload was not received).
-                                                                 *  Returns 'false` if the payload was sent but was not 
-                                                                 *  acknowledged with an ACK packet. This condition can only 
-                                                                 *  be reported if the auto-ack featureis on. */
+  unsigned long start_timer = micros();                         // Time the Tx cycle - obtain start time
+  bool report = radio.write(&txPayload, sizeof(txPayload));     // Attempt transmit. See Footnote #2 re return values.
+  unsigned long end_timer = micros();                           // Time the Tx cycle - obtain end time
 
-  unsigned long end_timer = micros();                           // time the Tx cycle - obtain end time
+  if (report) {
+                                                                // report is TRUE: meaning the nRF24 chip sent the payload out & got an ack back. 
+    errorFlash.clear();                                         // Since we have full success, clear any prior error conditions.
+    memcpy(pLoad->statusText, VERSION, size_t(VERSION));        // clear error status text
+    txPayload.ctSuccess = txPayload.ctSuccess + 1;              // we have a Tx/ack success, increment the success tracking counter.
 
-
-
-
-  if (report) {               // IF 'report' is true than nRF24 chip sent the payload out & got an ack back
-                                        /* report is TRUE: meaning the nRF24 chip sent the payload out & got an ack back. 
-                                         * Since we have full success, clear any prior error conditions. */
-      digitalWrite(LED_ERROR, LOW);
-      memcpy(txPayload.statusText, "Success    ", 11);       // clear error status text
-      txPayload.ctSuccess = txPayload.ctSuccess + 1;         // we have a Tx/ack success, increment the success tracking counter.
-
-        /* See if we got a receipt ACK payload back from the receiver (this would be an auto-ack payload).
-         * Declare variable to hold the pipe number that received the acknowledgement payload. */
-      uint8_t pipe;
-      if (radio.available(&pipe)) {                          // ACK if-then block. Test for ack payload, which will also return the pipe number that received it.
-        radio.read(&rxAckPayload, sizeof(rxAckPayload));     // get incoming ACK payload. Tho doing nothing with it on this side of the conversation.
-        delay(20);                                           // brief pause, then fall through to bottom of loop and keep transmitting.
-      } else {
-                            /*  In principle we should never get here. 'report' is TRUE, so the NRF24 is saying it has received 
-                             *  an ACK. BUT, maybe there can be cases where we do can ACK back, yet no data in the ACK, so no 
-                             *  payload? If that condition is possible, then this block traps it. */
-        errorLED (2);                                        // Call this error #2.
-        memcpy(txPayload.statusText, "ERROR 02   ", 11);     // Set text to send back to RPi to show error.
-        txPayload.ctErrors++;                                // we have a Tx/ack failure, increment the errors tracking counter.
-      }
+                                                                /* See if we got a receipt ACK payload back from the receiver (this would be an auto-ack payload).
+                                                                 * Declare variable to hold the pipe number that received the acknowledgement payload. */
+    uint8_t pipe;
+    if (radio.available(&pipe)) {                               // ACK if-then block. Test for ack payload, which will also return the pipe number that received it.
+      radio.read(&rxAckPayload, sizeof(rxAckPayload));          // get incoming ACK payload. Tho doing nothing with it on this side of the conversation.
+      delay(20);                                                // brief pause, then fall through to bottom of loop and keep transmitting.
+    } else {
+                                                                /*  In principle we should never get here. 'report' is TRUE, so the NRF24 is saying it has received 
+                                                                  *  an ACK. BUT, maybe there can be cases where we do can ACK back, yet no data in the ACK, so no 
+                                                                  *  payload? If that condition is possible, then this block traps it. */
+      errorFlash.setError(2);                                   // Call this error #2.
+      memcpy(txPayload.statusText, "ERROR 02   ", 11);          // Set text to send back to RPi to show error.
+      txPayload.ctErrors++;                                     // we have a Tx/ack failure, increment the errors tracking counter.
+    }
 
   } else {
-                            /*  NRF24 chip reports a transmission failure - almost certainly due to not getting an ACK back from 
-                             *  the RPi. Report, then fall through and keep trying. */
-    /* errorLED (3); <- Let's try skipping the delay this reporting introduces and see what happens */ // Call this error #3.
-    digitalWrite(LED_ERROR, HIGH);                           // Instead just show LED red to signal an error
+                                                                /*  NRF24 chip reports a transmission failure - almost certainly due to not getting an ACK back from 
+                                                                *  the RPi. Report, then fall through and keep trying. */
+    errorFlash.setError(3);                                     // Call this error #3.
     memcpy(txPayload.statusText, "ERROR 03   ", 11);
-    txPayload.ctErrors = txPayload.ctErrors + 1;             // we have a Tx/ack failure, increment the errors tracking counter.
-  } // if(report) -i.e., bottom of the transmit success/fail IF-ELSE block
+    txPayload.ctErrors = txPayload.ctErrors + 1;                // we have a Tx/ack failure, increment the errors tracking counter.
+  } // END if-else(report) -i.e., bottom of the transmit success/fail IF-ELSE block
 
 
-  delay(500);                                                // Introduce a bit of delay each loop cycle, tho this will mess with timing measurement, so in the end this must go away.
-  capacitorMeasurement(&txPayload);                          // Manage and measure the capacitor.
+  delay(300);                                                   // Introduce a bit of delay each loop cycle, tho this will mess with timing measurement, so in the end this must go away.
+  capacitorMeasurement(&txPayload);                             // Manage and measure the capacitor.
 
   heartBeat.update();
+  errorFlash.update();
 
 } // END loop()
 
@@ -258,24 +253,8 @@ void capacitorMeasurement(TxPayloadStruct * pLoad) {
   pLoad->chargeTime = elapsedTime;
   memcpy(pLoad->units, "pF ", 3);
   pLoad->capacitance = capacitance;
-  //memcpy(pLoad->statusText, "07-04      ", 11);
-  memcpy(pLoad->statusText, VERSION, size_t(VERSION));
 }
 
-
-void errorLED (int errorNo) {
-  digitalWrite(LED_ERROR, HIGH);          // Show RED on for a bit before counting out the error number.
-  delay(1500);
-  digitalWrite(LED_ERROR, LOW);
-  for (int i=errorNo; i>0; i--) {               // Flash LED to count the error number.
-    delay(500);
-    digitalWrite(LED_ERROR, HIGH);
-    delay(500);
-    digitalWrite(LED_ERROR, LOW);
-  }
-  delay(500);
-  digitalWrite(LED_ERROR, HIGH);          // Show RED on for a bit before counting out the error number.
-} // errorLED
 
 
 //*************************************************************************************************
@@ -283,11 +262,22 @@ void errorLED (int errorNo) {
 //*************************************************************************************************
 
    /*   1. When compiling you might see this warning: #warning "This is the CLOCKWISE pin 
-      mapping - make sure you're using the pinout diagram with the pins in clockwise order" <- As 
-      long as all pin references are in the SpenceKonde attiny core recommended form then ignore
+      mapping - make sure you're using the pinout diagram with the pins in clockwise order." 
+        As long as all pin references are in the SpenceKonde attiny core recommended form then ignore
       the warning. In fact, no matter which core variant you use you'll get a warning either way.
       Pin references should be of the form: "PIN_PA#" or PIN_PB#," for digital pins. For the 
       analog pins use the analog channel number as shown on the pinout diagram. E.g., use 
-      'A7' for ADC7, physical pin #6; 'A0' for ADC0, physical pin 13. 
-   */
+      'A7' for ADC7, physical pin #6; 'A0' for ADC0, physical pin 13. As long as you use this 
+      pin referencing system the clock/counter-clock-wise pin ordering thing is irrelevant.
+    */
+
+   /*   2. Notes on return value from [bool report = radio.write(&txPayload, sizeof(txPayload));]
+      FROM the RF24.h file, documentation on the return value of this function: Returns`true` 
+      if the payload was delivered successfully and an acknowledgement (ACK packet) was received. 
+      If auto-ack is disabled, then any attempt to transmit will also return true (even if the 
+      payload was not received). Returns 'false` if the payload was sent but was not 
+      acknowledged with an ACK packet. This condition can only be reported if the auto-ack 
+      feature is on. 
+    */
+
 
