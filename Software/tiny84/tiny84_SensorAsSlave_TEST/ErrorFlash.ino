@@ -1,5 +1,15 @@
 // Class: ErrorFLash - Function Definitions
 //=================================================================================================
+/*    FOOTNOTES: Note that there are 'footnotes' at the bottom of this file that provide more
+ *  detailed info and documentation that I didn't want to clutter up the code with; but which
+ *  I am likely to want to remember when I come back to this in 6 months.  : ) 
+ *   
+ *      07/08/2023: First release. I believe I have it working as desired. Tho of course 
+ *  real-world usage is likely to reveal subtle flaws to be fixed later.
+ *
+ */
+//=================================================================================================
+
 
 #include "Arduino.h"
 #include "ErrorFlash.h"
@@ -23,8 +33,7 @@ ErrorFlash::ErrorFlash(int pin) {
 
 
 void ErrorFlash::begin() {
-      /*    PURPOSE: Start the error reporting process going - with presumption that
-       *  no error condition currently exists. */
+      /*    PURPOSE: Start the error reporting process going for a new error. */
   
   pinMode(_ledPin, OUTPUT);
   digitalWrite(_ledPin, LOW);
@@ -70,31 +79,28 @@ void ErrorFlash::update() {
     case 3: // Done reporting error, but error condition still active; do nothing (LED should be lit, keep it lit).
       break;
 
-    case 1: // We are in the start demarcation phase.
+    case 1: // We are in the start demarcation phase. When this phase is over simply set next phase based on cycles remaining.
       if(millis() > _phaseStartMillis+_alertLength) {
-        digitalWrite(_ledPin, LOW);
-        _ledOn = false;
-        _errPhase = 2;
+        if(!_flashCyclesRemain) {
+          _errPhase = 3;
+        } else {
+          _errPhase = 2;
+        }
        _phaseStartMillis = millis();
       }
       break;
 
-    case 2: // We are flashing the errID#.
+    case 2: // Phase-2 -flashing the errID# and doing some logic work.
       if(millis() > _phaseStartMillis+_flashLength) {
         digitalWrite(_ledPin, !_ledOn);                 // 1st, flip the LED on/off state.
         _ledOn = !_ledOn;
         _countRemaining--;                              // 2nd, decrement remaining count.
         if(!_countRemaining) {
-          _flashCyclesRemain--;                         // Then IF we've finished a count-off, decrement that.
-          if(!_flashCyclesRemain) {
-            _errPhase = 3;                               // And IF we've also finished all the count-offs, move to steady LED on.
-          }
-          else {
-            _errPhase = 1;                               // IF we haven't finished all count-offs, start a new count-off cycle.
-            _countRemaining = _curErrID * 2;
-          }
+          _flashCyclesRemain--;                         // Then IF we've finished a count-off, decrement that and go back to phase-1.
+          _errPhase = 1;
+          _countRemaining = _curErrID * 2;
         }
-      _phaseStartMillis = millis();                   // Finally, either way, restart count-down timer and exit.
+        _phaseStartMillis = millis();                   // Finally, either way, restart count-down timer and exit.
       }
       break;
 
@@ -114,12 +120,14 @@ short int ErrorFlash::getErrorID() {
            *  or explicitly cleared by the using application. */
 
   return _curErrID;
-}
+
+} // END getErrorID()
 
 bool ErrorFlash::isFlashing() {
 
   return (bool)_flashCyclesRemain;
-}
+
+} //END isFlashing()
 
 
 void ErrorFlash::clean() {
@@ -139,18 +147,22 @@ void ErrorFlash::clean() {
 // FOOTNOTES
 //*************************************************************************************************
 
-   /*   1. The visible count-out of the error number is the number of times the LED flashes to
-    * an OFF state. So the error number flashing protocol is: LED starts out being ON for a
-    * longish time. Then it flashes OFF-ON the number of times of the error number. Then there is
-    * the same longish LED ON period between repeates of the count. Finally, when the count-out 
-    * fully completes the LED is ON steady until the error is cleared, "manually," by the calling
-    * program. So, e.g., for error #3: ON===OFF-ON=OFF-ON=OFF-ON===OFF-ON=OFF-ON=OFF-ON======...
-   */
+/*   1. The visible count-out of the error number is the number of times the LED flashes to
+  an ON state. So the error number flashing protocol is: LED starts out being ON for a
+  longish time. Then it flashes OFF-ON the number of times of the error number. Then there is
+  the same longish LED ON period between repeats of the count. Finally, when the count-out 
+  fully completes the LED is ON steady until the error is cleared, "manually," by the calling
+  program. So, e.g., for error #3: ON===OFF-ON=OFF-ON=OFF-ON===.....
+*/
 
-   /*   2. The code logic in the switch statement in ErrorFlash::update() assumes, and requires,
-    * that when we fall through the if(!_countRemaining) test - that is, we have finished an 
-    * error counting-out flash cycle - the LED is lit. This happens as a result of the sequence
-    * of on/off events leading up to this point such that the 1st step - flipping the LED on/off
-    * state always results in the LED being ON at the point were that test returns TRUE.
-   */
+/*   2. The code logic in the switch statement in ErrorFlash::update() could definitely be
+  challenging to follow. I was only able to work it out in my head by thinking like an
+  oscilloscope - drawing out the 'square wave' of the LED ON/OFF cycle for an example of 
+  error #3. And then against that diagram plotting out the phase transition points, 
+  remaining count, and remaining cycle transitions and values. To make it fairly simple in 
+  the code there is also a subtly that the "longish" on time that preceeds the error counting
+  flashing includes one unit of the shorter 'flash' time so that the longer 'alert' on pulse
+  prior to each flash count-out is really the sum of (_alertLength + _flashLength). Once that is
+  your head it should be a bit easier to see how the logic is working.
+*/
 

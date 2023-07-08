@@ -12,6 +12,7 @@
 
 #include "Arduino.h"
 #include "Dispatcher.h"
+#include "ErrorFlash.h"
 
 //*************************************************************************************************
 
@@ -41,14 +42,14 @@ void Dispatcher::dispatch() {
 
   if(!errorFlash.isFlashing()) {
     if(millis() > _errorStartTime + _testErrorFrequency) {
-    errorNum = errorFlash.getErrorID() + 1;
-    if (errorNum > 10) errorNum = 3;
-    setError(errorNum);
-    _errorStartTime = mills();
+      errorNum = errorFlash.getErrorID() + 1;
+      if (errorNum > 10) errorNum = 3;
+      errorFlash.setError(errorNum);
+      _errorStartTime = millis();
+    }
+
   }
-
 }
-
 
 
 /**************************************************************************************************

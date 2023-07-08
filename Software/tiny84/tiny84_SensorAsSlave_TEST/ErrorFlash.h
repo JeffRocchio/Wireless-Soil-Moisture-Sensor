@@ -23,10 +23,10 @@
  *    1. By design, error reporting is non-blocking. Two implications to this. One, the calling
  *  program will need to manage what other activities the MCU can be performing while the error
  *  condition exists and is being reported out via the flashing error LED. And, two, if a 2nd
- *  error arises before the current error is finished being reported on the calling program
+ *  error arises before the current error is finished being reported out, the calling program
  *  will need to decide on what to do. I.e., block until the current error reporting is done,
  *  or stop current error and start reporting the new error, or maybe ignore the new error
- *  (is, say, it isn't critical).
+ *  (if, say, it isn't critical).
  */
 class ErrorFlash {
 
@@ -43,21 +43,26 @@ class ErrorFlash {
     bool _ledOn;                     // TRUE = on, FALSE = off.
 
   public:
+
     ErrorFlash(int pin);
-          /*      PURPOSE: Constructor. 
-       *  Used to set the pin#/reference that the LED is wired up to. */
+      //      PURPOSE: Constructor.
+      /*  Used to set the pin#/reference that the LED is wired up to. */
+
     void begin();
-          /*    PURPOSE: Start the error process going. */
-    void clear();
-          /*    PURPOSE: stop any current error reporting in process. */
-    void update();
-          /*    PURPOSE: Determine if it is time to change the state of
-           *  the error LED per the error report-out cycle. And if so, 
-           *  does it. */
+      /*    PURPOSE: Start the error reporting process going for a new error. */
 
     void setError(short int errorID);
-          /*    PURPOSE: Set an error to report out by blinking of 
-           *  the error LED. */
+      /*    PURPOSE: Set an error to report out by blinking of 
+       *  the error LED. */
+
+    void clear();
+      /*    PURPOSE: Stop any in-process error reporting process
+       *  and clear the error condition. */
+
+    void update();
+      /*    PURPOSE: Determine if it is time to toggle the LED on/off;
+       *  if so, do so. AND also update what phase of the reporting
+       *  cycle we are in; including potentially ending the report. */
 
     short int getErrorID();
           /*    PURPOSE: Can be used in the sktech to obtain the 
