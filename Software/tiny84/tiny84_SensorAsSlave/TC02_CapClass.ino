@@ -1,11 +1,23 @@
 //Moisture Sensor Project - ATTiny84 Code
+// TEST TEST - This sketch is the test case for the pF capacitance measurement class.
 
-#define VERSION "SEN_070823"
+// Dispatcher simply initiates a new measurement request after about a 30 second
+// delay from the prior measurement. HeartBeat should be running continuously in
+// the background.
+
+// NOTE: In this test case I am using the ErrorFlash class to flash
+// out an 'error-3' after each measurement has completed, just as way to signal
+// that we have a successful measurement since in this test case we are not
+// using the radio to send data over to a Raspberry Pi; thus we can't otherwise
+// see anything.
+
+#define VERSION "TC02_070923"
 
 // ==== PULL IN REQUIRED LIBRARIES ===============================================================
   #include "HeartBeat.h"
   #include "ErrorFlash.h"
   #include "Dispatcher.h"
+  #include "CapSensor.h"
 
 // ==== PIN REFERENCES. (For ATTiny84 Pin Reference guidance see footnote #1 at bottom of this file.)
 

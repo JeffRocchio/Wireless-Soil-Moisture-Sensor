@@ -163,6 +163,8 @@ void ErrorFlash::clean() {
   the code there is also a subtly that the "longish" on time that preceeds the error counting
   flashing includes one unit of the shorter 'flash' time so that the longer 'alert' on pulse
   prior to each flash count-out is really the sum of (_alertLength + _flashLength). Once that is
-  your head it should be a bit easier to see how the logic is working.
+  your head it should be a bit easier to see how the logic is working. The 'oscilloscope' 
+  diagram I used to work this out is at: 
+  /Software/Documentation/ErrorFlash_PulseProtocol.odg
 */
 
