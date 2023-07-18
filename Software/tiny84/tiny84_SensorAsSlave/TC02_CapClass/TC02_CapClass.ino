@@ -16,8 +16,8 @@
 // ==== PULL IN REQUIRED LIBRARIES ===============================================================
   #include "HeartBeat.h"
   #include "ErrorFlash.h"
-  #include "Dispatcher.h"
   #include "CapSensor.h"
+  #include "Dispatcher.h"
 
 // ==== PIN REFERENCES. (For ATTiny84 Pin Reference guidance see footnote #1 at bottom of this file.)
 

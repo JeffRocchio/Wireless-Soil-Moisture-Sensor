@@ -29,6 +29,9 @@
 class Dispatcher {
 
   private:
+    unsigned long _capReadingFrequency;
+    unsigned long _capReadingStartTime;
+
     unsigned long _testErrorFrequency;
     unsigned long _errorStartTime;
 
@@ -37,7 +40,7 @@ class Dispatcher {
     Dispatcher();
           /*      PURPOSE: Constructor. */
     void begin();
-          /*    PURPOSE: Start sensor reading process. */
+          /*    PURPOSE: Start the dispatcher. */
     void dispatch();
           /*    PURPOSE: Assesses changed states and new inputs and uses that 
            *  information to begin/ terminate /continue all other activities.
