@@ -37,7 +37,7 @@ class CapSensor {
     short int _measurePhase;          // Were we are in the measure protocol 0:No Measurement. 1:Pluse, Read & Clear. 2: Calculate. 3: Take Average. 4: Measurement Available.
     float _capacitance;               // Measured capacitance value.
     bool _readingAvailable;           // Will be TRUE if a sensor capacitance reading has completed.
-    short int _ReadingsRemain         // The number of readings remaining in the total number we're averaging over.
+    short int _ReadingsRemain;        // The number of readings remaining in the total number we're averaging over.
     float _capAccumulator;            // Will accumulate multiple cap readings so we can take an average for the final value.
     unsigned long _nextMeasureMillis; // Wait until at least this time to take another reading.
     int _tempVolts;                   // Stores voltage reading between Phase-1 and Phase-2.
@@ -49,7 +49,7 @@ class CapSensor {
           /*    PURPOSE: Constructor. 
        *  Used to set the pin#/reference that the sensing capacitor is wired up to. */
 
-    setup();
+    void setup();
           /*    PURPOSE: Initilize the sensor to enable readings. */
 
     void initiateSensorReading();

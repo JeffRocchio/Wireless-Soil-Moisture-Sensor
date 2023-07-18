@@ -21,7 +21,7 @@ CapSensor::CapSensor(int chargePin, int voltReadPin) {
 } // END CapSensor (constructor method)
 
 
-CapSensor::setup() {
+void CapSensor::setup() {
           /*    PURPOSE: Initilize the sensor to enable readings. */
   pinMode(_chargePin, OUTPUT);
   digitalWrite(_chargePin, LOW);              // Start with 0 volts on charge pin.
@@ -31,7 +31,7 @@ CapSensor::setup() {
 }
 
 
-CapSensor::void initiateSensorReading() {
+void CapSensor::initiateSensorReading() {
           /*    PURPOSE: Change state of the object such that we begin to make a series of 
            *  capacitance readings, which we will average out when done into a 'final' 
            *  reading of the sensor's capacitance value. */
@@ -43,31 +43,32 @@ CapSensor::void initiateSensorReading() {
 }
 
 
-CapSensor::bool readingAvailable() {
+bool CapSensor::readingAvailable() {
           /*    PURPOSE: See longish description in capSensor.h. */
 
-  switch(_measurementPhase) {
-    case: 1                                   // Phase-1: Pulse, Read & Clear.
+  switch(_measurePhase) {
+    case 1:                                   // Phase-1: Pulse, Read & Clear.
       pulseAndReadVolts();
       _measurePhase =2;
       break;
 
-    case: 2                                   // Phase-2: Calculate Capacitance.
+    case 2:                                   // Phase-2: Calculate Capacitance.
       if(millis()>_nextMeasureMillis) {       // But only if hard-coded inter-measurement 'rest time' has elapsed.
         _capAccumulator +=  (float)(_tempVolts * IN_STRAY_CAP_TO_GND) / (float)(MAX_ADC_VALUE - _tempVolts);
-        _numReadingsRemaining--;
+        _ReadingsRemain--;
         _nextMeasureMillis = millis() + INTER_MEASUREMENT_DELAY;
         if(!_ReadingsRemain) _measurePhase = 3;
       }
       break;
 
-    case: 3                                   // Phase-3: Take Average.
+    case 3:                                   // Phase-3: Take Average.
       _capacitance = _capAccumulator / NUM_READINGS_TO_AVERAGE;
       _readingAvailable = true;
       _measurePhase = 4;
       break;
 
     default:                                  // Phase-4: Measurement Available. Don't take any action.
+      break;
   }
 
   return(_readingAvailable);
