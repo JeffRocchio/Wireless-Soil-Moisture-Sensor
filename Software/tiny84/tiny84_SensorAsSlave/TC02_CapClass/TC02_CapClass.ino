@@ -11,7 +11,7 @@
 // using the radio to send data over to a Raspberry Pi; thus we can't otherwise
 // see anything.
 
-#define VERSION "TC02_070923"
+#define VERSION "TC02_071823"
 
 // ==== PULL IN REQUIRED LIBRARIES ===============================================================
   #include "HeartBeat.h"
@@ -38,9 +38,10 @@
 // DECLARE GLOBAL VARIABLES =======================================================================
 
     /* Global Classes (objects) */
-  ErrorFlash errorFlash(LED_ERROR); // Instantiate an error reporting object.
-  HeartBeat heartBeat(LED_GREEN);   // Instantiate a HeartBeat object.
-  Dispatcher dispatcher;
+  ErrorFlash errorFlash(LED_ERROR);                       // Instantiate an error reporting object.
+  HeartBeat heartBeat(LED_GREEN);                         // Instantiate a HeartBeat object.
+  Dispatcher dispatcher;                                  // Instantiate a Dispatcher object.
+  CapSensor capSensor(CAP_VOLTREAD_PIN, CAP_CHARGE_PIN);  // Instantiate a CapSensor object.
 
 // END Declare Global Variables
 
@@ -52,6 +53,7 @@ void setup() {
   heartBeat.begin();                        // Start the heartbeat LED. Keep it lit for entire setup() process.
   errorFlash.begin();                       // Start the error reporting-out-by-flashing-LED process.
   dispatcher.begin();
+  capSensor.setup();
 
 } // END setup()
 
