@@ -21,8 +21,6 @@
  */
 
 HeartBeat::HeartBeat(int pin) {
-      /*      PURPOSE: Constructor. 
-       *  Used to set the pin#/reference that the LED is wired up to. */
   _onLength = 700;
   _offLength = 350;
   _ledPin = pin;
@@ -31,7 +29,6 @@ HeartBeat::HeartBeat(int pin) {
 }
 
 void HeartBeat::begin() {
-      /*    PURPOSE: Start the heartbeat process going. */
   pinMode(_ledPin, OUTPUT);
   digitalWrite(_ledPin, HIGH);
   _ledOn = true;
@@ -39,17 +36,12 @@ void HeartBeat::begin() {
 }
 
 void HeartBeat::stop() {
-      /*    PURPOSE: stop the heartbeat process. 
-        May be useful if you need to use the heartbeat LED for some
-        other purpose temporarily. */
   digitalWrite(_ledPin, LOW);
   _ledOn = false;
   _phaseStartMillis = 0;
 }
 
 void HeartBeat::update() {
-      /*    PURPOSE: Determine if it is time to toggle the heartbeat LED on/off;
-      if so, do so. */
   int timeoutLength;
   if (_ledOn) { timeoutLength = _onLength; } else { timeoutLength = _offLength; }
     if(millis() > _phaseStartMillis+timeoutLength) {

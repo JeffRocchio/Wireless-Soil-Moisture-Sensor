@@ -1,6 +1,6 @@
 //Moisture Sensor Project - ATTiny84 Code
 
-#define VERSION "SEN_070623"
+#define VERSION "SEN_091223"
 /*    DESCRIPTION: Arduino sketch to make the ATTiny84 MCU serve as a Slave sensor, with 
  * a Raspberry Pi as the Master - i.e., sensor server.
  *
@@ -8,16 +8,19 @@
  *  detailed info and documentation that I didn't want to clutter up the code with; but which
  *  I am likely to want to remember when I come back to this in 6 months.  : ) 
  *   
- *      07/06/2023: First attempt to code up reasonable sensor behavior per the Design Notes in
- *  milestone #12.
+ *      09/12/2023: First attempt to code up reasonable sensor behavior per the Design Notes in
+ *  milestone #12. Asof this date this code is really just a mess because so far I am building
+ *  the objects I need and using test cases to verify each of those. Once I have all the
+ *  classes/objects done I'll turn my attention to this code.
  *
  */
 
 // ==== PULL IN REQUIRED LIBRARIES ===============================================================
   #include "HeartBeat.h"
   #include "ErrorFlash.h"
-  #include <SPI.h>
-  #include "RF24.h"
+  #include "CapSensor.h"
+  #include "RadioComms.h"
+  #include "Dispatcher.h"
 
 // ==== PROTOTYPES FOR CLASSES AND FUNCTIONS DEFINED IN THIS SOURCE FILE =========================
 // END Prototypes
@@ -43,65 +46,11 @@
 // DECLARE GLOBAL VARIABLES =======================================================================
 
     /* Global Classes (objects) */
-  ErrorFlash errorFlash(LED_ERROR); // Instantiate an error reporting object.
-  HeartBeat heartBeat(LED_GREEN);   // Instantiate a HeartBeat object.
-  RF24 radio(CE_PIN, CSN_PIN);      // instantiate an object for the nRF24L01 transceiver.
-
-    /* Global variables needed For capacitance measurement */
-  const float IN_STRAY_CAP_TO_GND = 24.48;  // Stray capacitance, used as 'C1' in schematic. 
-  const float IN_EXTRA_CAP_TO_GND = 0.0;    // Extra capacitance can be added to measure higher values.
-  const float IN_CAP_TO_GND  = IN_STRAY_CAP_TO_GND + IN_EXTRA_CAP_TO_GND;
-  const int MAX_ADC_VALUE = 1023;
-
-  /* Other Global Variables */
-    /*    Being sloppy here as I experiment and learn, relative to relying heavily on
-    * globals. Although, my mindset clearly comes from desktop/server coding. Perhaps efficient
-    * coding on an MCU is paradigmatically different vis-a-vis globals? */
-
-    /* nRF24:    
-    *    Declare an array to hold node addresses. In this case we have only two nodes -
-    * the RPi and this node, the tiny84.
-    *    NOTE from original source: "It is very helpful to think of an address as a path 
-    * instead of as an identifying device destination."
-    *    Jeff Comment: I don't really understand how these "addresses" are used, this 
-    * needs further rabbit-holing my me at some point. */
-  uint8_t address[][6] = {"1Node", "2Node"};
-
-    /* nRF24:    
-    *    Comment in original source: "To use different addresses on a pair of radios
-    * we need a variable to uniquely identify which address this radio will use to 
-    * transmit."
-    *    This variable is used later to de-reference an entry in the address[][] array
-    * declared above. */
-  bool radioNumber = 1;             // 0 uses address[0] to transmit, 1 uses address[1] to transmit
-
-    /* nRF24: Used to control whether this node is sending or receiving. */
-  bool role = true;                 // true = TX role, false = RX role
-
-    /* nRF24:     
-    *    Define, and declare, a struct to hold the transmit payload.
-    *    NOTE: This struct must match the 'receive' payload structure declared on
-    * the RPi side. */
-  struct TxPayloadStruct {
-    float capacitance;
-    uint32_t chargeTime;            // Time it took for capacitor to charge.
-    char units[4];                  // nFD, mFD, FD
-    uint32_t ctSuccess;             // count of success Tx attempts tiny84 has seen since boot
-    uint32_t ctErrors;              // count of Tx errors tiny84 saw since last successful transmit
-    char statusText[12];            // For use in debugging. Be sure there is space for a NULL terminating char
-
-  };
-  TxPayloadStruct txPayload;
-
-    /* nRF24:     
-    *    Define, and declare, a struct to hold the acknowledgement payload.
-    *    NOTE: This struct must match the 'ack' payload structure declared on
-    * the RPi side. */
-  struct RxPayloadStruct {
-    char message[11];               // Incoming message up to 10 chrs+Null.
-    uint8_t counter;
-  };
-  RxPayloadStruct rxAckPayload;
+  ErrorFlash errorFlash(LED_ERROR);                       // Instantiate an error reporting object.
+  HeartBeat heartBeat(LED_GREEN);                         // Instantiate a HeartBeat object.
+  RadioComms radio(CE_PIN, CSN_PIN);                      // instantiate my nRF24L01 transceiver wrapper object.
+  CapSensor capSensor(CAP_VOLTREAD_PIN, CAP_CHARGE_PIN);  // Instantiate a CapSensor object.
+  Dispatcher dispatcher;                                  // Instantiate the Dispatcher object.
 
 // END Declare Global Variables
 
@@ -112,148 +61,27 @@ void setup() {
 
   heartBeat.begin();                        // Start the heartbeat LED. Keep it lit for entire setup() process.
   errorFlash.begin();                       // Start the error reporting-out-by-flashing-LED process.
-
-  pinMode(LED_ERROR, OUTPUT);
-
-
-    /*    Init capacitance measurement pins. */
-  pinMode(CAP_CHARGE_PIN, OUTPUT);
-  digitalWrite(CAP_CHARGE_PIN, LOW);       // Start with 0 volts on charge pin.
-  pinMode(CAP_VOLTREAD_PIN, OUTPUT);
-  digitalWrite(CAP_VOLTREAD_PIN, LOW);     // Start with the analog pin low, 0 volts.
-
-    /* Init the nRF24 radio on the SPI bus. If this fails, go into an infinite
-     * loop, stuck in that error condition. If this does happen, signal that
-     * with the LEDs. */
-  if (!radio.begin()) {
-    while (1) {
-      errorFlash.setError(9);              // Call this error #9.
-      errorFlash.update();
-    }
-  }
-
-    /* Set the PA Level low to try preventing power supply related problems
-     * because these examples are likely run with nodes in close proximity to
-     * each other. */
-  radio.setPALevel(RF24_PA_LOW);      // RF24_PA_MAX is default.
-
-    /* To use ACK payloads, we need to enable dynamic payload lengths (for all nodes) */
-  radio.enableDynamicPayloads();
-
-    /*    We wish to receive Acknowledgement payloads back from the RPi. 
-     *    To be able to do so We need to enable this feature for all nodes (TX & RX). 
-     * (akk packets have no payloads by default.) */
-  radio.enableAckPayload();
-
-    /*    Original source code comment: "set the TX address of the RX node into the TX pipe. 
-     * Always uses pipe 0 for transmit."
-     *    Jeff Note: This is quite confusing. I haven't yet backtracked this to work
-     * out what it's really saying. But I assume it's saying that we need to load an
-     * address into the transmit pipe that the receiving node will recognize and accept
-     * as a valid "one of us." */
-  radio.openWritingPipe(address[radioNumber]);
-
-    /*    Original Source Comment: "set the RX address of the TX node into a RX pipe."
-     *    Jeff: An interesting way to specify the row '0' in the address array.
-     * I guess this approach guarantees that transmit and receive addresses
-     * will always be 'the opposite' of each other. */
-  radio.openReadingPipe(1, address[!radioNumber]);  // using pipe 1 to receive.
-
-    /* Put radio in transmit mode. */
-  radio.stopListening();
-
-
-    /* Load the txPayload structure with initial defaults. */
-  txPayload.capacitance = 0;                        // calculated capacitance
-  txPayload.chargeTime = 0;                         // Time it took for capacitor to charge.
-  memcpy(txPayload.units, "---", 3);                // capacitance units
-  txPayload.ctSuccess = 0;                          // running count of no-error transmissions
-  txPayload.ctErrors = 0;                           // running count of transmissions errors
-  memcpy(pLoad->statusText, VERSION, size_t(VERSION));
+  capSensor.setup();
+  if (!radio.setup()) errorFlash.setError(9);
+  dispatcher.begin();
 
 } // END setup()
 
 
 
-// ==== Transmission Loop
+// ==== Processor Running Loop
 /*************************************************************************************************
- *    OK, we've setup the ATTiny84 and the radio chip. Now go into an infinite loop, continuously 
- * transmitting data, seeking a valid acknowlegement of receipt; then repeat....
+ *    Using the 'non-blocking' classes/objects I've created, go into the standard Arduino 
+ * infinitely running loop, continuously calling the various dispatch and update functions to
+ * share processor time between the various tasks.
  */
 void loop() {
-  unsigned long start_timer = micros();                         // Time the Tx cycle - obtain start time
-  bool report = radio.write(&txPayload, sizeof(txPayload));     // Attempt transmit. See Footnote #2 re return values.
-  unsigned long end_timer = micros();                           // Time the Tx cycle - obtain end time
 
-  if (report) {
-                                                                // report is TRUE: meaning the nRF24 chip sent the payload out & got an ack back. 
-    errorFlash.clear();                                         // Since we have full success, clear any prior error conditions.
-    memcpy(pLoad->statusText, VERSION, size_t(VERSION));        // clear error status text
-    txPayload.ctSuccess = txPayload.ctSuccess + 1;              // we have a Tx/ack success, increment the success tracking counter.
-
-                                                                /* See if we got a receipt ACK payload back from the receiver (this would be an auto-ack payload).
-                                                                 * Declare variable to hold the pipe number that received the acknowledgement payload. */
-    uint8_t pipe;
-    if (radio.available(&pipe)) {                               // ACK if-then block. Test for ack payload, which will also return the pipe number that received it.
-      radio.read(&rxAckPayload, sizeof(rxAckPayload));          // get incoming ACK payload. Tho doing nothing with it on this side of the conversation.
-      delay(20);                                                // brief pause, then fall through to bottom of loop and keep transmitting.
-    } else {
-                                                                /*  In principle we should never get here. 'report' is TRUE, so the NRF24 is saying it has received 
-                                                                  *  an ACK. BUT, maybe there can be cases where we do can ACK back, yet no data in the ACK, so no 
-                                                                  *  payload? If that condition is possible, then this block traps it. */
-      errorFlash.setError(2);                                   // Call this error #2.
-      memcpy(txPayload.statusText, "ERROR 02   ", 11);          // Set text to send back to RPi to show error.
-      txPayload.ctErrors++;                                     // we have a Tx/ack failure, increment the errors tracking counter.
-    }
-
-  } else {
-                                                                /*  NRF24 chip reports a transmission failure - almost certainly due to not getting an ACK back from 
-                                                                *  the RPi. Report, then fall through and keep trying. */
-    errorFlash.setError(3);                                     // Call this error #3.
-    memcpy(txPayload.statusText, "ERROR 03   ", 11);
-    txPayload.ctErrors = txPayload.ctErrors + 1;                // we have a Tx/ack failure, increment the errors tracking counter.
-  } // END if-else(report) -i.e., bottom of the transmit success/fail IF-ELSE block
-
-
-  delay(300);                                                   // Introduce a bit of delay each loop cycle, tho this will mess with timing measurement, so in the end this must go away.
-  capacitorMeasurement(&txPayload);                             // Manage and measure the capacitor.
-
+  dispatcher.dispatch();
   heartBeat.update();
   errorFlash.update();
 
 } // END loop()
-
-
-
-// ==== Capacitor Functions
-
-/*************************************************************************************************
- *    Measure capacitance using Jon's approach. Put the measurement data into the payload
- * structure and return. 
- *    The capacitor under test is connected between CAP_CHARGE_PIN and CAP_VOLTREAD_PIN.
- */
-void capacitorMeasurement(TxPayloadStruct * pLoad) {
-  unsigned long startTime = millis();
-  unsigned long elapsedTime;
-
-  pinMode(CAP_VOLTREAD_PIN, INPUT);        // Get ready to measure voltage.
-  digitalWrite(CAP_CHARGE_PIN, HIGH);      // Send voltage pulse to cap under test.
-  int val = analogRead(CAP_VOLTREAD_PIN);  // Read voltage at point between 'C1' and C-test.
-
-      //Clear everything for next measurement
-  digitalWrite(CAP_CHARGE_PIN, LOW);       // Remove voltage from caps.
-  pinMode(CAP_VOLTREAD_PIN, OUTPUT);       // ?? - does this discharge C-test to ground??
-
-  elapsedTime= millis() - startTime;       // Capture elapsed time out of curiosity.
-
-                                           //Calculate and store result
-  float capacitance = (float)val * IN_CAP_TO_GND / (float)(MAX_ADC_VALUE - val);
-
-  //memcpy(pLoad->statusText, "Measurement", 11);
-  pLoad->chargeTime = elapsedTime;
-  memcpy(pLoad->units, "pF ", 3);
-  pLoad->capacitance = capacitance;
-}
 
 
 

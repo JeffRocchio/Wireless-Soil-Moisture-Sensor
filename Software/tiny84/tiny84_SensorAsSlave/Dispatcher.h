@@ -7,6 +7,7 @@
 #include "Arduino.h"
 
 /************************************************************************************************
+*
 *    PURPOSE: Is the 'controller' in MVC perspective. Receives information and input and 
 * determines how to direct processing. This class is key to creating non-blocking apps. In
 * every iteration of the loop() function this class/object will evaluate the current state of
@@ -28,20 +29,26 @@
 
 class Dispatcher {
 
-  private:
-    unsigned long _testErrorFrequency;
-    unsigned long _errorStartTime;
+  private: // for testing purposes.
+    unsigned long __simInterCapMeasureTime = 1000;
+    unsigned long __lastCapMeasureMillis = 0;
 
+  private:
+    float _capacitorValue = 0;
+    bool _radioAvailable = false;
 
   public:
-    Dispatcher();
-          /*      PURPOSE: Constructor. */
-    void begin();
+
+          /*    PURPOSE: Constructor. */
+    //Dispatcher();
+
           /*    PURPOSE: Start sensor reading process. */
-    void dispatch();
+    void begin();
+
           /*    PURPOSE: Assesses changed states and new inputs and uses that 
            *  information to begin/ terminate /continue all other activities.
            *  Intended to be called once each loop() cycle. */
+    void dispatch();
 
 };
 #endif

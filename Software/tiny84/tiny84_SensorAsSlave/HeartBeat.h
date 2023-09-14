@@ -7,6 +7,7 @@
 #include "Arduino.h"
 
  /************************************************************************************************
+ *
  *    PURPOSE: Blink green LED to show that the MCU is running through the main loop. That is, it 
  *  is UP and running. Even if there is a current error condition, my goal here is to indicate 
  *  that the MCU is still processing and responsive...or not. Note that for the fun of it I have
@@ -28,18 +29,23 @@ class HeartBeat {
     int _offLength;                  // Number of milliseconds to keep LED off per blink cycle.
     unsigned long _phaseStartMillis; // Milliseconds on the MCU clock at start of current phase of the blink cycle.
     bool _ledOn;                     // TRUE = on, FALSE = off.
+
   public:
-    HeartBeat(int pin);
+
           /*      PURPOSE: Constructor. 
        *  Used to set the pin#/reference that the LED is wired up to. */
-    void begin();
+    HeartBeat(int pin);
+
           /*    PURPOSE: Start the heartbeat process going. */
-    void stop();
+    void begin();
+
           /*    PURPOSE: stop the heartbeat process. 
             May be useful if you need to use the heartbeat LED for some
             other purpose temporarily. */
-    void update();
+    void stop();
+
           /*    PURPOSE: Determine if it is time to toggle the heartbeat LED on/off;
           if so, do so. */
+    void update();
 };
 #endif

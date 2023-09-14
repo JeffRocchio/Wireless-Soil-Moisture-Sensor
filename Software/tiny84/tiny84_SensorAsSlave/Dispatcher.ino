@@ -13,41 +13,40 @@
 #include "Arduino.h"
 #include "Dispatcher.h"
 #include "ErrorFlash.h"
+#include "CapSensor.h"
+#include "RadioComms.h"
 
 //*************************************************************************************************
 
 
 
-Dispatcher::Dispatcher() {
-      /*      PURPOSE: Constructor. */
-  _testErrorFrequency = 500;
-  _errorStartTime = 0;
-
-}
-
+// Dispatcher::Dispatcher() {
+// }
 
 void Dispatcher::begin() {
-      /*    PURPOSE: Start the Dispatcher process. */
-
-  _testErrorFrequency = 15000;
-  _errorStartTime = 0;
-
+  // Nothing to do at the moment.
 }
 
 void Dispatcher::dispatch() {
-        /*    PURPOSE: Assesses changed states and new inputs and uses that 
-        *  information to begin/ terminate /continue all other activities.
-        *  Intended to be called once each loop() cycle. */
-  short int errorNum;
-
-  if(!errorFlash.isFlashing()) {
-    if(millis() > _errorStartTime + _testErrorFrequency) {
-      errorNum = errorFlash.getErrorID() + 1;
-      if (errorNum > 10) errorNum = 3;
-      errorFlash.setError(errorNum);
-      _errorStartTime = millis();
+  /* If we're flashing out an error condition, wait for that report-out to complete.
+   * Once complete, clear the error. */
+  if(errorFlash.getErrorID() == 9) { //TMP: A 9 error means no radio active.
+    if(!errorFlash.isFlashing()) errorFlash.clear();
+    return;
     }
-
+  /* No radio connected - try again to connect/initilize the radio chip. */
+  if(!_radioAvailable) {
+    if(!radio.setup()) {
+      _radioAvailable = false;
+      errorFlash.setError(9);
+    return;
+    }
+  }
+  /*  for testing, simulate cap measurement on fixed intervals. */
+  if(millis() > __lastCapMeasureMillis + __simInterCapMeasureTime) {
+    _capacitorValue += 0.1;
+    radio.setTxPayload(_capacitorValue);
+    __lastCapMeasureMillis = millis();
   }
 }
 

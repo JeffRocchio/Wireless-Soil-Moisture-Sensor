@@ -18,34 +18,22 @@
 
 
 ErrorFlash::ErrorFlash(int pin) {
-      /*      PURPOSE: Constructor. 
-       *  Used to set the pin#/reference that the LED is wired up to. */
-
   _alertLength = 700;     //Set fixed values here in the object constructor.
   _flashLength = 250;
   _numFlashCycles = 2;
-
   _ledPin = pin;          // Set the pin LED is wired up to, as passed in from calling program.
-  
   clean();                // Initilize into a no error condition.
-
 } // END ErrorFlash (constructor method)
 
 
 void ErrorFlash::begin() {
-      /*    PURPOSE: Start the error reporting process going for a new error. */
-  
   pinMode(_ledPin, OUTPUT);
   digitalWrite(_ledPin, LOW);
   _ledOn = false;
-
 } // END begin()
 
 
 void ErrorFlash::setError(short int errorID) {
-      /*    PURPOSE: Set an error to report out by blinking of 
-       *  the error LED. */
-  
   _curErrID = errorID;
   _countRemaining = _curErrID * 2;
   _flashCyclesRemain = _numFlashCycles;
@@ -53,25 +41,16 @@ void ErrorFlash::setError(short int errorID) {
   digitalWrite(_ledPin, HIGH);
   _ledOn = true;
   _phaseStartMillis = millis();
-
 } // END setError()
 
 
 void ErrorFlash::clear() {
-      /*    PURPOSE: Stop any in-process error reporting process
-       *  and clear the error condition. */
-  
   digitalWrite(_ledPin, LOW);
   clean();
-
 } // END clear()
 
 
 void ErrorFlash::update() {
-      /*    PURPOSE: Determine if it is time to toggle the LED on/off;
-       *  if so, do so. AND also update what phase of the reporting
-       *  cycle we are in; including potentially ending the report. */
-  
   int timeoutLength;
 
   switch (_errPhase) {
@@ -92,19 +71,19 @@ void ErrorFlash::update() {
 
     case 2: // Phase-2 -flashing the errID# and doing some logic work.
       if(millis() > _phaseStartMillis+_flashLength) {
-        digitalWrite(_ledPin, !_ledOn);                 // 1st, flip the LED on/off state.
+        digitalWrite(_ledPin, !_ledOn);          // 1st, flip the LED on/off state.
         _ledOn = !_ledOn;
-        _countRemaining--;                              // 2nd, decrement remaining count.
+        _countRemaining--;                       // 2nd, decrement remaining count.
         if(!_countRemaining) {
-          _flashCyclesRemain--;                         // Then IF we've finished a count-off, decrement that and go back to phase-1.
+          _flashCyclesRemain--;                  // Then IF we've finished a count-off, decrement that and go back to phase-1.
           _errPhase = 1;
           _countRemaining = _curErrID * 2;
         }
-        _phaseStartMillis = millis();                   // Finally, either way, restart count-down timer and exit.
+        _phaseStartMillis = millis();            // Finally, either way, restart count-down timer and exit.
       }
       break;
 
-    default:                                          // Phases 0 & 3, we do nothing. In phase 0 LED should be off. In phase 3 it should be on steady.
+    default:                                     // Phases 0 & 3, we do nothing. In phase 0 LED should be off. In phase 3 it should be on steady.
       break;
 
   } // END switch statement
@@ -112,27 +91,16 @@ void ErrorFlash::update() {
 } // END update()
 
 short int ErrorFlash::getErrorID() {
-          /*    PURPOSE: Can be used in the sktech to obtain the 
-           *  current error number. Will return 0 if no error. BUT
-           *  note that I don't automatically clear the error after
-           *  flashing out it's number. The error info will stay in
-           *  the object's data fields until a new error is initiated,
-           *  or explicitly cleared by the using application. */
-
   return _curErrID;
 
 } // END getErrorID()
 
 bool ErrorFlash::isFlashing() {
-
   return (bool)_flashCyclesRemain;
-
 } //END isFlashing()
 
 
 void ErrorFlash::clean() {
-      /*    PURPOSE: Sets state to 'no error' condition. */
-  
   _curErrID = 0;
   _ledOn = false;
   _phaseStartMillis = 0;
@@ -140,7 +108,6 @@ void ErrorFlash::clean() {
   _flashCyclesRemain = 0;
   _errPhase = 0;
   _phaseStartMillis = 0;
-
 } // END clean
 
 /**************************************************************************************************

@@ -7,6 +7,7 @@
 #include "Arduino.h"
 
  /************************************************************************************************
+ * 
  *    PURPOSE: Provide a means to report error conditions to a user via an LED.
  *
  *    USAGE:
@@ -44,40 +45,41 @@ class ErrorFlash {
 
   public:
 
-    ErrorFlash(int pin);
       //      PURPOSE: Constructor.
       /*  Used to set the pin#/reference that the LED is wired up to. */
+    ErrorFlash(int pin);
 
-    void begin();
       /*    PURPOSE: Start the error reporting process going for a new error. */
+    void begin();
 
-    void setError(short int errorID);
       /*    PURPOSE: Set an error to report out by blinking of 
        *  the error LED. */
+    void setError(short int errorID);
 
-    void clear();
       /*    PURPOSE: Stop any in-process error reporting process
        *  and clear the error condition. */
+    void clear();
 
-    void update();
       /*    PURPOSE: Determine if it is time to toggle the LED on/off;
        *  if so, do so. AND also update what phase of the reporting
        *  cycle we are in; including potentially ending the report. */
+    void update();
 
-    short int getErrorID();
           /*    PURPOSE: Can be used in the sktech to obtain the 
            *  current error number. Will return 0 if no error. BUT
            *  note that I don't automatically clear the error after
            *  flashing out it's number. The error info will stay in
            *  the object's data fields until a new error is initiated,
            *  or explicitly cleared by the using application. */
+    short int getErrorID();
 
-    bool isFlashing();
           /*    PURPOSE: Use to test if an error is in processes of being
-           *  counted-out. Returns TRUE if so, FALSE is the current error
+           *  counted-out. Returns TRUE if so, FALSE if the current error
            * has finished being reported out. */
+    bool isFlashing();
 
   private:
+
     void clean();
 
 };
