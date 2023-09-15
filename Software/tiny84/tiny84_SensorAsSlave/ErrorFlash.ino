@@ -4,6 +4,12 @@
  *  detailed info and documentation that I didn't want to clutter up the code with; but which
  *  I am likely to want to remember when I come back to this in 6 months.  : ) 
  *   
+ *      09/15/2023: Slight design change. Now when the errorID is set to 0 we execute the 
+ * clear() operation. Did this to make the logic of using this class a bit cleaner. I was 
+ * having some challenges with getting the error LED to an off state after an error cleared.
+ * This was due to having to think about explictly calling clear() from outside the class 
+ * even when I was using function error returns to set  the errorID to '0'
+ *
  *      07/08/2023: First release. I believe I have it working as desired. Tho of course 
  *  real-world usage is likely to reveal subtle flaws to be fixed later.
  *
@@ -34,13 +40,17 @@ void ErrorFlash::begin() {
 
 
 void ErrorFlash::setError(short int errorID) {
-  _curErrID = errorID;
-  _countRemaining = _curErrID * 2;
-  _flashCyclesRemain = _numFlashCycles;
-  _errPhase = 1;
-  digitalWrite(_ledPin, HIGH);
-  _ledOn = true;
-  _phaseStartMillis = millis();
+  if(errorID > 0) {
+    _curErrID = errorID;
+    _countRemaining = _curErrID * 2;
+    _flashCyclesRemain = _numFlashCycles;
+    _errPhase = 1;
+    digitalWrite(_ledPin, HIGH);
+    _ledOn = true;
+    _phaseStartMillis = millis();
+  } else {
+     clear();
+  }
 } // END setError()
 
 

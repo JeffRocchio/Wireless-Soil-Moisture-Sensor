@@ -4,8 +4,8 @@
  *  detailed info and documentation that I didn't want to clutter up the code with; but which
  *  I am likely to want to remember when I come back to this in 6 months.  : ) 
  *   
- *      07/08/2023: First draft. Goal with this 1st draft is just to test the ErrorFlash
- *  class by creating/clearing an error condition every 30 seconds or so.
+ *      09/15/2023: This version is for test case TC03_TransmitPOC (1st test of RadioComms class). 
+ * SUCCESS. See screenshot TC03_TransmitPOC_terminalDisplay.jpg.
  *
  */
 //=================================================================================================
@@ -28,26 +28,54 @@ void Dispatcher::begin() {
 }
 
 void Dispatcher::dispatch() {
-  /* If we're flashing out an error condition, wait for that report-out to complete.
-   * Once complete, clear the error. */
-  if(errorFlash.getErrorID() == 9) { //TMP: A 9 error means no radio active.
+  /* What follows is a series of tests that determine which action to take. That is, 
+   * each test determines a 'dispatch' action. The intent here is that each test
+   * stand on it's own as a test-action pair; and that we return immediately from 
+   * each of those in order to be non-blocking. */
+
+
+  /* CHECK ERROR CONDITION IN PROGRESS ---
+   *    If we're flashing out an error condition don't initiate
+   * any new actions until the  error report-out is complete.
+   *    Once complete, clear the error, which on subsequent dispatch calls
+   * will then fall through this test to allow other actions to be taken. */
+  if(errorFlash.getErrorID() > 0) {
     if(!errorFlash.isFlashing()) errorFlash.clear();
     return;
     }
-  /* No radio connected - try again to connect/initilize the radio chip. */
+
+  /* IS THERE A RADIO THERE? ---
+   *    Check to see if we have an active/alive radio chip connected
+   * and initilized. If not, to connect * initilize the radio chip. */
   if(!_radioAvailable) {
     if(!radio.setup()) {
-      _radioAvailable = false;
-      errorFlash.setError(9);
-    return;
+      errorFlash.setError(9);           // 9 error means no radio active.
+      return;
     }
+    _radioAvailable = true;
+    return;
   }
-  /*  for testing, simulate cap measurement on fixed intervals. */
+
+  /* CAPACITANCE MEASUREMENT ---
+   *   For testing, simulate cap measurement on fixed intervals. 
+   *   I will note that by doing a return in this block I am making
+   * a choice that radio Rx/Tx actions are to be suspended until we 
+   * complete a cap measurement. This choice is based on my intention 
+   * to take a measurement on a pace which is order of magnititude 
+   * slower that the speed of a single Tx/Rx event. And that I don't 
+   * want to have 'partial' measurements overlapping with in-flight 
+   * data transmissions. */
   if(millis() > __lastCapMeasureMillis + __simInterCapMeasureTime) {
     _capacitorValue += 0.1;
     radio.setTxPayload(_capacitorValue);
     __lastCapMeasureMillis = millis();
+    return;
   }
+
+  /* When we fall through to here everything is 'nominal' and we can give a CPU slice to
+   * the radio object for it to do a chunk of Tx/Rx pending work (if any is in process).  */
+  errorFlash.setError(radio.update());
+
 }
 
 

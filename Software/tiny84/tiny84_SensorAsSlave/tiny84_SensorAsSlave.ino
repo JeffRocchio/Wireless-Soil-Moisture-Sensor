@@ -1,6 +1,6 @@
 //Moisture Sensor Project - ATTiny84 Code
 
-#define VERSION "SEN_091223"
+#define VERSION "SEN_091523"
 /*    DESCRIPTION: Arduino sketch to make the ATTiny84 MCU serve as a Slave sensor, with 
  * a Raspberry Pi as the Master - i.e., sensor server.
  *
@@ -8,10 +8,12 @@
  *  detailed info and documentation that I didn't want to clutter up the code with; but which
  *  I am likely to want to remember when I come back to this in 6 months.  : ) 
  *   
+ *      09/15/2023: TC03_TransmitPOC successfully completed. This file has been updated to
+ * reflect relevant code used in TC03_TransmitPOC.ino so that we have a sound starting basis
+ * for the next iteration of updates.
+ *
  *      09/12/2023: First attempt to code up reasonable sensor behavior per the Design Notes in
- *  milestone #12. Asof this date this code is really just a mess because so far I am building
- *  the objects I need and using test cases to verify each of those. Once I have all the
- *  classes/objects done I'll turn my attention to this code.
+ *  milestone #12.
  *
  */
 
@@ -59,10 +61,10 @@
 // ==== SETUP PROCEDURE===========================================================================
 void setup() {
 
-  heartBeat.begin();                        // Start the heartbeat LED. Keep it lit for entire setup() process.
-  errorFlash.begin();                       // Start the error reporting-out-by-flashing-LED process.
+  heartBeat.begin();                            // Start the heartbeat LED. Keep it lit for entire setup() process.
+  errorFlash.begin();                           // Start the error reporting-out-by-flashing-LED process.
   capSensor.setup();
-  if (!radio.setup()) errorFlash.setError(9);
+  if (!radio.setup()) errorFlash.setError(9);   // If radio chip isn't there, set errorID 9.
   dispatcher.begin();
 
 } // END setup()

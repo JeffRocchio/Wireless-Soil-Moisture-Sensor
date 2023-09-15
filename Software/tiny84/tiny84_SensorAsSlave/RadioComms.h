@@ -46,11 +46,11 @@ class RadioComms {
     bool _radioAvail = false;               // True if the radio is up and running.
     struct TxPayloadStruct {                // struct to accumulate txPayload data.
       float capacitance;
-      uint32_t chargeTime;            // Time it took for capacitor to charge.
-      uint32_t ctSuccess;             // count of success Tx attempts tiny84 has seen since boot
-      uint32_t ctErrors;              // count of Tx errors tiny84 saw since last successful transmit
-      char units[4];                  // nFD, mFD, FD
-      char statusText[12];            // For use in debugging. Be sure there is space for a NULL terminating char
+      uint32_t chargeTime = 0;   // Time it took for capacitor to charge.
+      uint32_t ctSuccess = 0;    // count of success Tx attempts tiny84 has seen since boot
+      uint32_t ctErrors = 0;     // count of Tx errors tiny84 saw since last successful transmit
+      char units[4];             // nFD, mFD, FD
+      char statusText[12];       // For use in debugging. Be sure there is space for a NULL terminating char
     };
     TxPayloadStruct _txPayload;
     struct RxPayloadStruct {                // struct for incoming ACK response from Master.
@@ -75,7 +75,7 @@ class RadioComms {
            * This function is intended to be called once for every pass of the 
            * main processing loop. Based on current Tx/Rx phase it will take
            * the appropriate action. 
-           *    RETURNS: Tx/Rx Phase we are in as a result of the update process. */
+           *    RETURNS: 0 if no errors; else an error number. */
     short int update();
 
 
