@@ -7,11 +7,16 @@
  *  /home/jroc/Dropbox/projects/MoistureSensor/CapSensor
  *  Refer to git for version history and associated comments.
  *
+ *      09/15/2023: Modified the RsPayloadStruct to match a tweak I made on the RPi side.
+ * (Moved the units variable down to be with the statusText string so all the numeric
+ * variables would be stacked atop the stings. My thought is to achieve 4-byte alignment
+ * to eventually see if I can cease with custom data load routine for the structure.)
+ *
  *      10/04/2022: Initial program to receive, and display on the console, the data structure
  * populated, and transmitted, by the ATTiny84/nRF24 prototype device.
  *
  */
-#define VERSION "10-04-2022 rel 01"
+#define VERSION "09-15-2023 rel 01"
 
 /*
  * For nRF24 radio chip documentation see https://nRF24.github.io/RF24
@@ -52,9 +57,9 @@ uint8_t rxBytes[40];
 struct RxPayloadStruct {
   float capacitance;
   uint32_t chargeTime;            // Time it took for capacitor to charge.
-  char units[4];                  // nFD, mFD, FD
   uint32_t ctSuccess;             // count of success Tx attempts tiny84 has seen since boot
   uint32_t ctErrors;              // count of Tx errors tiny84 saw since last successful transmit
+  char units[4];                  // nFD, mFD, FD
   char statusText[12];            // For use in debugging.
 };
 RxPayloadStruct rxPayload;
@@ -292,14 +297,14 @@ void loadRxStruct(RxPayloadStruct* pStruct, uint8_t* pBytes) {
     pStruct->chargeTime = *(uint32_t *)&pBytes[offset];
     offset = offset + sizeof(pStruct->chargeTime);
 
-    memcpy((unsigned char *)&pStruct->units, &pBytes[offset], sizeof(pStruct->units));
-    offset = offset + sizeof(pStruct->units);
-
     pStruct->ctSuccess = *(uint32_t *)&pBytes[offset];
     offset = offset + sizeof(pStruct->ctSuccess);
 
     pStruct->ctErrors = *(uint32_t *)&pBytes[offset];
     offset = offset + sizeof(pStruct->ctErrors);
+
+    memcpy((unsigned char *)&pStruct->units, &pBytes[offset], sizeof(pStruct->units));
+    offset = offset + sizeof(pStruct->units);
 
     memcpy(pStruct->statusText, &pBytes[offset], sizeof(pStruct->statusText));
 }
@@ -375,12 +380,6 @@ void DisplayRxPacket::displayRxResults(RxPayloadStruct* pStruct, bool bCurReset)
     showHexOfBytes((unsigned char*)&rxPayload.chargeTime,sizeof(rxPayload.chargeTime));
     cout << endl;
 
-    cout << setw(wdthVarName) << setfill(' ') << " units: ";
-    cout << setw(2) << (unsigned int)sizeof(rxPayload.units);
-    cout << " | " << setw(wdthValue) << rxPayload.units << " | 0x ";
-    showHexOfBytes((unsigned char*)&rxPayload.units,sizeof(rxPayload.units));
-    cout << endl;
-
     cout << setw(wdthVarName) << setfill(' ') << " ctSuccess: ";
     cout << setw(2) << (unsigned int)sizeof(rxPayload.ctSuccess);
     cout << " | " << setw(wdthValue) << rxPayload.ctSuccess << " | 0x ";
@@ -391,6 +390,12 @@ void DisplayRxPacket::displayRxResults(RxPayloadStruct* pStruct, bool bCurReset)
     cout << setw(2) << (unsigned int)sizeof(rxPayload.ctErrors);
     cout << " | " << setw(wdthValue) << rxPayload.ctErrors << " | 0x ";
     showHexOfBytes((unsigned char*)&rxPayload.ctErrors,sizeof(rxPayload.ctErrors));
+    cout << endl;
+
+    cout << setw(wdthVarName) << setfill(' ') << " units: ";
+    cout << setw(2) << (unsigned int)sizeof(rxPayload.units);
+    cout << " | " << setw(wdthValue) << rxPayload.units << " | 0x ";
+    showHexOfBytes((unsigned char*)&rxPayload.units,sizeof(rxPayload.units));
     cout << endl;
 
     cout << setw(wdthVarName) << setfill(' ') << " statusText: ";
