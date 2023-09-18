@@ -32,6 +32,17 @@
 
 class RadioComms {
 
+  public:
+      /*    Structure to hold incoming ACK data packet from Master.
+       * Declared as public so that we can declare a matching
+       * pointer to it inside the Dispatcher class, which is 
+       * where we need to have the data to be able to work on
+       * it as appropriate. */
+      struct RxPayloadStruct {
+      char message[11];
+      uint8_t counter;
+    };
+
   private:
     RF24 _radioChip;                        // The nRF24 radio object (defined in the RF25.h library).
     int _cePin;                             // 'Chip Enable.' CE pin nRF24 is wired to.
@@ -44,6 +55,7 @@ class RadioComms {
     short int _phase = 0;                   // Comms phase we are in.
     bool _rxPayloadAvailable;               // We have a received payload.
     bool _radioAvail = false;               // True if the radio is up and running.
+
     struct TxPayloadStruct {                // struct to accumulate txPayload data.
       float capacitance;
       uint32_t chargeTime = 0;   // Time it took for capacitor to charge.
@@ -53,10 +65,7 @@ class RadioComms {
       char statusText[12];       // For use in debugging. Be sure there is space for a NULL terminating char
     };
     TxPayloadStruct _txPayload;
-    struct RxPayloadStruct {                // struct for incoming ACK response from Master.
-      char message[11];               // Incoming message up to 10 chrs+Null.
-      uint8_t counter;
-    };
+
     RxPayloadStruct _rxAckPayload;
 
   public:
@@ -82,26 +91,14 @@ class RadioComms {
           /*    PURPOSE: Set the data to transmit in next transmit cycle. */
     void setTxPayload(float fCap);
 
+          /*    PURPOSE: Tells caller if an ACK payload is available.
+           * So, in effect, tells if the latest transmission attmept
+           * has completed. */
+    bool ackAvailable();
 
-    //void initiateSensorReading();
-          /*    PURPOSE: Change state of the object such that we begin to make a series of 
-           *  capacitance readings, which we will average out when done into a 'final' 
-           *  reading of the sensor's capacitance value. */
+          /*    PURPOSE: Returns pointer to last received ack payload. */
+    RxPayloadStruct* getAckPayload();
 
-    //bool readingAvailable();
-          /*    PURPOSE: Serves two purposes - One, serves as the 'update' function for
-          * an ongoing cap reading request. That is, it's going to cause a bit of work 
-          * to be done on making a reading, then return control back to the loop() so
-          * we don't 'block' the processor. Secondly, once a reading process has been
-          * completed, and is now now available, this will return TRUE so that the
-          * calling program will know it can get the reading data.. It will return FALSE
-          * while the reading process is ongoing. To get a new reading, and not simply
-          * return an old, prior, reading be sure to call makeReading() before testing
-          * this. For a somewhat graphical view of the logic of this function see:
-          * /Software/Documentation/RadioComms_MeasurementProtocol.odg. */
-
-  //private:
-    //void pulseAndReadVolts();
 
 };
 #endif

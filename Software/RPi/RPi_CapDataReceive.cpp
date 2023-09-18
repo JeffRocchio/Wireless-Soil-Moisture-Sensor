@@ -7,6 +7,9 @@
  *  /home/jroc/Dropbox/projects/MoistureSensor/CapSensor
  *  Refer to git for version history and associated comments.
  *
+ *      09/18/2023: Removed user prompt to input radio number. Hard-coding it to always be transmitting
+ * to the ATTiny's radio chip - that is, address "2Node." Also modified the timeout to be 10 minutes.
+ *
  *      09/15/2023: Modified the RsPayloadStruct to match a tweak I made on the RPi side.
  * (Moved the units variable down to be with the statusText string so all the numeric
  * variables would be stacked atop the stings. My thought is to achieve 4-byte alignment
@@ -118,17 +121,10 @@ int main(int argc, char** argv) {
     }
 
     // Let these addresses be used for the pair
-    uint8_t address[2][6] = {"1Node", "2Node"};
-    bool radioNumber = 1; // 0 uses address[0] to transmit, 1 uses address[1] to transmit
+    uint8_t address[2][6] = {"1Node", "2Node"}; // "2Node is the address of ATTiny's nRF24 radio."
 
     // print example's name
     cout << endl<< argv[0] << " [" << VERSION << "]" << endl;
-
-    // Set the radioNumber via the terminal on startup
-    cout << "Which radio is this? Enter '0' or '1'. Defaults to '0' ";
-    string input;
-    getline(cin, input);
-    radioNumber = input.length() > 0 && (uint8_t)input[0] == 49;
 
     // to use ACK payloads, we need to enable dynamic payload lengths
     radio.enableDynamicPayloads();    // ACK payloads are dynamically sized
@@ -142,11 +138,11 @@ int main(int argc, char** argv) {
     // each other.
     radio.setPALevel(RF24_PA_LOW);  // RF24_PA_MAX is default.
 
-    // set the TX address of the RX node into the TX pipe
-    radio.openWritingPipe(address[radioNumber]);     // always uses pipe 0
+    // set the address of the receiving node into the TX pipe
+    radio.openWritingPipe(address[1]);     // always uses pipe 0
 
-    // set the RX address of the TX node into a RX pipe
-    radio.openReadingPipe(1, address[!radioNumber]); // using pipe 1
+    // set this nodes's address into a reading pipe
+    radio.openReadingPipe(1, address[0]); // using pipe 1
 
     // For debugging info
     // radio.printDetails();        // (smaller) function that prints raw register values
@@ -205,7 +201,7 @@ void slave() {
 
     radio.startListening();                                             // put radio in RX mode
     time_t startTimer = time(nullptr);                                  // start a timer
-    while (time(nullptr) - startTimer < 12) {                           // use 12 second timeout
+    while (time(nullptr) - startTimer < 600) {                          // use 10 minute timeout
         uint8_t pipe;
         if (radio.available(&pipe)) {                                   // is there a received payload? get the pipe number that recieved it
             uint8_t bytes = radio.getDynamicPayloadSize();              // <<-- NOTE: Compilier says we never use this anywhere. Myes, get it's size

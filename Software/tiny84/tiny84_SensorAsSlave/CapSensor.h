@@ -46,19 +46,18 @@ class CapSensor {
 
   public:
 
-    CapSensor(int chargePin, int voltReadPin);
           /*    PURPOSE: Constructor. 
        *  Used to set the pin#/reference that the sensing capacitor is wired up to. */
+    CapSensor(int chargePin, int voltReadPin);
 
-    void setup();
           /*    PURPOSE: Initilize the sensor to enable readings. */
+    void setup();
 
-    void initiateSensorReading();
           /*    PURPOSE: Change state of the object such that we begin to make a series of 
            *  capacitance readings, which we will average out when done into a 'final' 
            *  reading of the sensor's capacitance value. */
+    void initiateSensorReading();
 
-    bool readingAvailable();
           /*    PURPOSE: Serves two purposes - One, serves as the 'update' function for
           * an ongoing cap reading request. That is, it's going to cause a bit of work 
           * to be done on making a reading, then return control back to the loop() so
@@ -69,6 +68,12 @@ class CapSensor {
           * return an old, prior, reading be sure to call makeReading() before testing
           * this. For a somewhat graphical view of the logic of this function see:
           * /Software/Documentation/CapSensor_MeasurementProtocol.odg. */
+    bool readingAvailable();
+
+
+          /*    PURPOSE: Obtain last read value of the sensor capacitance. */
+    float getCapacitance();
+
 
   private:
     void pulseAndReadVolts();

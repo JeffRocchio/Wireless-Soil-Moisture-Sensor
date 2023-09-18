@@ -1,5 +1,16 @@
 // Class: CapSensor - Function Definitions
 //=================================================================================================
+/*    FOOTNOTES: Note that there are 'footnotes' at the bottom of this file that provide more
+ *  detailed info and documentation that I didn't want to clutter up the code with; but which
+ *  I am likely to want to remember when I come back to this in 6 months.
+ *
+ *      09/18/2023: Fixed failure to clear _capAccumulator on new reading initiation.
+ *
+ *      09/17/2023: Added function to retreive the measured value of the sensor's capacitance.
+ *
+ */
+//=================================================================================================
+
 
 #include "Arduino.h"
 #include "CapSensor.h"
@@ -37,6 +48,7 @@ void CapSensor::initiateSensorReading() {
            *  reading of the sensor's capacitance value. */
 
   _capacitance = 0;                           // Clear out prior reading.
+  _capAccumulator = 0;
   _readingAvailable = false;
   _ReadingsRemain = NUM_READINGS_TO_AVERAGE;  // Establish number of measurements to average over.
   _measurePhase = 1;                          // Start the process by moving into Phase-1 of the reading protocol.  
@@ -49,7 +61,7 @@ bool CapSensor::readingAvailable() {
   switch(_measurePhase) {
     case 1:                                   // Phase-1: Pulse, Read & Clear.
       pulseAndReadVolts();
-      _measurePhase =2;
+      _measurePhase = 2;
       break;
 
     case 2:                                   // Phase-2: Calculate Capacitance.
@@ -74,6 +86,11 @@ bool CapSensor::readingAvailable() {
   return(_readingAvailable);
 }
 
+
+float CapSensor::getCapacitance() {
+          /*    PURPOSE: Obtain last read value of the sensor capacitance. */
+  return(_capacitance);
+}
 
 void CapSensor::pulseAndReadVolts() {
           /*    PURPOSE: Private function. Performs the Phase-1 step of taking one measurement of

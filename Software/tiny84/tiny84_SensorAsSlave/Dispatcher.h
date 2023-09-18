@@ -29,13 +29,13 @@
 
 class Dispatcher {
 
-  private: // for testing purposes.
-    unsigned long __simInterCapMeasureTime = 1000;
-    unsigned long __lastCapMeasureMillis = 0;
-
   private:
+    unsigned long _capReadingInterval = 15000; // Once every 15 seconds.
+    unsigned long _capReadingStartTime = 0;
     float _capacitorValue = 0;
     bool _radioAvailable = false;
+    short int _phase = 0;
+    RadioComms::RxPayloadStruct* _ackPayloadPtr;
 
   public:
 

@@ -46,34 +46,55 @@ void Dispatcher::dispatch() {
 
   /* IS THERE A RADIO THERE? ---
    *    Check to see if we have an active/alive radio chip connected
-   * and initilized. If not, to connect * initilize the radio chip. */
+   * and initilized. If not, try initilize the radio chip. */
   if(!_radioAvailable) {
     if(!radio.setup()) {
       errorFlash.setError(9);           // 9 error means no radio active.
       return;
     }
-    _radioAvailable = true;
+    _radioAvailable = true;             // If we get here then the radio chip got activated.
     return;
   }
 
-  /* CAPACITANCE MEASUREMENT ---
-   *   For testing, simulate cap measurement on fixed intervals. 
-   *   I will note that by doing a return in this block I am making
-   * a choice that radio Rx/Tx actions are to be suspended until we 
-   * complete a cap measurement. This choice is based on my intention 
-   * to take a measurement on a pace which is order of magnititude 
-   * slower that the speed of a single Tx/Rx event. And that I don't 
-   * want to have 'partial' measurements overlapping with in-flight 
-   * data transmissions. */
-  if(millis() > __lastCapMeasureMillis + __simInterCapMeasureTime) {
-    _capacitorValue += 0.1;
-    radio.setTxPayload(_capacitorValue);
-    __lastCapMeasureMillis = millis();
-    return;
+  /* PROCEED WITH READ-TX-RESPOND CYCLE ---
+   *    No error reporting in flight, and we have an active radio.
+   * Proceed with the normal cycle of wake; sensor reading; transmission;
+   * and ACK command response. */
+  switch (_phase) {
+    case 0:  // Sleeping (sort of)
+      if(millis() > (_capReadingStartTime + _capReadingInterval)) _phase = 1;
+      break;
+
+    case 1: // Initiate sensor reading.
+      _capReadingStartTime = millis();
+      capSensor.initiateSensorReading();
+      _phase = 2;
+      break;
+
+    case 2: // Wait for and fetch sensor reading, then initiate transmission.
+      if(capSensor.readingAvailable()) {   // This gives a slice of CPU time to CapSensor object.
+        radio.setTxPayload(capSensor.getCapacitance());
+        _phase = 3;
+      }
+      break;
+
+    case 3: // Wait for and fetch ACK payload.
+      if(radio.ackAvailable()) {
+        _ackPayloadPtr = radio.getAckPayload();
+        _phase = 4;
+      }
+      break;
+
+    case 4: // Handle master's command back to me.
+      // Master command handler here....
+      // For now tho, do a pseudo sleep state.
+      _phase = 0;
+      break;
   }
 
-  /* When we fall through to here everything is 'nominal' and we can give a CPU slice to
-   * the radio object for it to do a chunk of Tx/Rx pending work (if any is in process).  */
+  /* ONGOING RADIO TRANSMISSION ---
+  /*    Give a CPU slice to the radio object for it to do a 
+   * chunk of Tx/Rx pending work (if any is in process).  */
   errorFlash.setError(radio.update());
 
 }
