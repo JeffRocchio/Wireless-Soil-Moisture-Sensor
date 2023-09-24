@@ -4,6 +4,9 @@
  *  detailed info and documentation that I didn't want to clutter up the code with; but which
  *  I am likely to want to remember when I come back to this in 6 months.
  *
+ *      09/20/2023: Sending ATTiny millis() in the 'chargeTime' field; for ref over on the RPi.
+ * Added statement to clear any existing error upon successful Tx/Rx-ACK back.
+ *
  *      09/18/2023: Fixed missing _rxPayloadAvailable = true; in Phase-2 logic.
  *
  */
@@ -22,7 +25,7 @@ RadioComms::RadioComms(int cePin, int csnPin) : _cePin(cePin),
        * list in order to properly have the 
        * compilier call the RF24 constructor 
        * function with the pin params. */
- 
+  _rxAckPayload.command = 0;
 } // END RadioComms (constructor method)
 
 
@@ -50,7 +53,8 @@ void RadioComms::setTxPayload(float fCap) {
 
   /* To get us started with testing our concept out, let's just dummy up some data to transmit. */
   _txPayload.capacitance = fCap;                     // calculated capacitance
-  memcpy(_txPayload.units, "---", 3);                // capacitance units
+  _txPayload.chargeTime = millis();                  // Send CPU current time just for reference.
+  memcpy(_txPayload.units, "pF ", 3);                // capacitance units
   memcpy(_txPayload.statusText, "testing", 7);
 
   _rxPayloadAvailable = false;                       // Make sure we 'reset' from any prior Tx cycle.
@@ -70,6 +74,7 @@ short int RadioComms::update() {
         if(report) {
           _txPayload.ctSuccess++;
           _phase = 2;
+          iErr = 0;                                                // Success - clear any prior error.
         } else {
           _txPayload.ctErrors++;
           iErr = 2;                                                 // Call this error #2. Stay in phase-1 for a retry.
@@ -78,7 +83,7 @@ short int RadioComms::update() {
       }
       break;
 
-    case 2:                         // Phase-2: Retreive, ACK payload...
+    case 2:                         // Phase-2: Retreive ACK payload...
       if(millis()>(_lastMillis+_ackWaitDelay)) {       // ...but only if hard-coded inter-measurement 'rest time' has elapsed.
         uint8_t pipe;                                               // Tmp variable to hold pipe # with the ack payload.
         if (_radioChip.available(&pipe)) {                          // Do we have an ACK payload (with auto-ack on, we def should).
@@ -86,7 +91,8 @@ short int RadioComms::update() {
           _rxPayloadAvailable = true;
         } else {                                                    // No ACK payload....
           iErr = 3;                                                 // Call this error #3, and...
-          _txPayload.ctErrors++;                                    // Increment the errors tracking counter.
+          _txPayload.ctErrors++;                                    // ...increment the errors tracking counter and...
+          _phase = 1;                                               // ...go back to Phase-1 to retry whole Tx/Rx-ACK process.
         }
         _phase = 0;
         _lastMillis = millis();                                     // In effect, restart the txWaitDelay.

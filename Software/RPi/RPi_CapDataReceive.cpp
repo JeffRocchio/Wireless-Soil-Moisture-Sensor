@@ -7,6 +7,13 @@
  *  /home/jroc/Dropbox/projects/MoistureSensor/CapSensor
  *  Refer to git for version history and associated comments.
  *
+ *      09/24/2023: Put in logic for handling commands back from master. This includes
+ * redefining the AckPayloadStruct struct to match up with RadioComms::RxPayloadStruct struct.
+ * Also eliminated the timeout.
+ *
+ *
+ *      09/20/2023: Modified the timeout to be 2-hours.
+ *
  *      09/18/2023: Removed user prompt to input radio number. Hard-coding it to always be transmitting
  * to the ATTiny's radio chip - that is, address "2Node." Also modified the timeout to be 10 minutes.
  *
@@ -19,7 +26,12 @@
  * populated, and transmitted, by the ATTiny84/nRF24 prototype device.
  *
  */
-#define VERSION "09-15-2023 rel 01"
+/*  -----------------------------------------------------------------------------------------------------
+ *  COMMAND SET - Commands we can send back to the sensor.
+ *      00: No command back.
+ *      01: Sleep for # of milliseconds in uliCmdData field, then take reading and send it to me.
+*/
+#define VERSION "09-24-2023 rel 01"
 
 /*
  * For nRF24 radio chip documentation see https://nRF24.github.io/RF24
@@ -70,9 +82,12 @@ RxPayloadStruct rxPayload;
     /* Structure to store the outgoing ACK payload
     */
 struct AckPayloadStruct {
-  char message[11];               // Outgoing message, up to 10 chrs+Null.
-  uint8_t counter;
-};
+  uint8_t command;      // Command ID back to sensor | 1-byte
+  uint8_t uiCmdData;    // Command data field: unsigned int | 1-byte
+  int iCmdData;         // Command data field: signed int | 2-bytes
+  uint64_t uliCmdData;  // Command data field: unsigned long int | 4-bytes
+  float fCmdData;       // Command data field: float | 4-bytes
+  };
 AckPayloadStruct ackPayload;
 
     /* Custom defined timer for evaluating transmission
@@ -149,7 +164,11 @@ int main(int argc, char** argv) {
     radio.printPrettyDetails();     // (larger) function that prints human readable data
 
     // ready to execute program now
-    setRole(); // calls master() or slave() based on user input
+    // setRole(); // calls master() or slave() based on user input <- See below comment.
+    slave(); /* 9/24/2023: Removing user input for role. "slave" is bad naming here
+              * as I am now treating the RPi as the 'master' and the sensor as
+              * the 'slave.' But the RPi code all needs to be cleaned up at some
+              * point anyway. */
     return 0;
 
 } // Main()
@@ -161,7 +180,8 @@ int main(int argc, char** argv) {
    =============================================================================
 */
 
-/* Set this node's role from stdin stream.
+/* 09/24/20233: This function is now obsolete.
+ * Set this node's role from stdin stream.
    This only considers the first char as input.
    Raspberry Pi will be a receive-only node.
    This function then calls slave(), which runs an infinte loop, unless we
@@ -186,43 +206,47 @@ void setRole() {
 } // setRole()
 
 
-/* Performs receiver-role tasks */
+/* Performs receiver-role tasks.
+ * 9/24/2023: Bad name for function as I am now using the RPi as the 'master'
+ * in interactions with the sensor. But the RPi code needs to be cleaned up
+ * anyway so for now I'm not messing with changing the function name. */
 void slave() {
-    memcpy(ackPayload.message, "Pkt Count ", 10);          // set the ackPayload message
-    ackPayload.counter = 0;                                // set the ackPayload counter
-    DisplayRxPacket dspRx;                                 // create object to display received packets
+        // Set ACK payload.
+    ackPayload.command = 0;
+    ackPayload.uiCmdData = 0;
+    ackPayload.iCmdData = 0;
+    ackPayload.uliCmdData = 0;
+    ackPayload.fCmdData = 0;
 
+        // Create object to display received packets
+    DisplayRxPacket dspRx;
 
-
-        /* Load the ackPayload for first received
-           transmission on pipe 0.
-        */
+        // Load the ackPayload for first received transmission on pipe 0.
     radio.writeAckPayload(1, &ackPayload, sizeof(ackPayload));
 
-    radio.startListening();                                             // put radio in RX mode
-    time_t startTimer = time(nullptr);                                  // start a timer
-    while (time(nullptr) - startTimer < 600) {                          // use 10 minute timeout
+        // Put radio in RX mode.
+    radio.startListening();
+        // Infinite loop for radio Rx/ACK events. No timeout, runs forever.
+    while (true) {
         uint8_t pipe;
         if (radio.available(&pipe)) {                                   // is there a received payload? get the pipe number that recieved it
             uint8_t bytes = radio.getDynamicPayloadSize();              // <<-- NOTE: Compilier says we never use this anywhere. Myes, get it's size
             radio.read(&rxBytes[0], sizeof(rxBytes));                   // fetch payload from RX FIFO
             loadRxStruct(&rxPayload, rxBytes);                          // Manually' load rxPayload structure from the received bytes array.
-            dspRx.displayRxResults(&rxPayload, true);                                    // display received transmission info
-            startTimer = time(nullptr);                                 // Reset the timer
-            ackPayload.counter = ackPayload.counter + 1;                // Increment the 'payloads received' counter.
+            dspRx.displayRxResults(&rxPayload, true);                   // display received transmission info
+            ackPayload.command = 0;                                     // No instructions back to sensor at this time.
             radio.writeAckPayload(1, &ackPayload, sizeof(ackPayload));  // Load the ACK payload for use on the next received Tx
         } // if received something
-    } // while
+    } // END while loop
 
-        /* Handle radio listening timout case. Which, other than a Control-C by
-           the user, is the only way the slave() function ends. And upon ending
-           we return back to the setRole() function's while loop, allowing the
-           user to quite or initiate another try.
-        */
-    cout << "Timeout While Waiting to Receive Data. Leaving RX role." << endl;
-    cout << "You may quite or press r to try again." << endl;
-    radio.stopListening();                                              // recommended idle behavior is TX mode
-} // slave
+        /* In current logic design we never get to this line. But at
+         * some point I'd like to have a legitimate user interface
+         * method to get out of the infinite loop above and/or have the
+         * user be able to input a command that the RPi would send
+         * back to the sensor. So just leaving this here for now. */
+            // Recommended idle behavior is TX mode.
+    radio.stopListening();
+} // END slave()
 
 
 
@@ -265,8 +289,11 @@ void displayRxbuffer(uint8_t* rxBytes, uint8_t size_rxBytes, uint8_t ctRawBytes)
  */
 void displayAck(AckPayloadStruct* pStruct) {
             cout << " Sent in Response: ";
-            cout << pStruct->message;
-            cout << (unsigned int)pStruct->counter << endl;
+            cout << (uint8_t)pStruct->command << endl;
+            cout << (uint8_t)pStruct->uiCmdData << endl;
+            cout << (int)pStruct->iCmdData << endl;
+            cout << (uint64_t)pStruct->uliCmdData << endl;
+            cout << (float)pStruct->fCmdData << endl;
             cout << setfill('-') << setw(50) << "-" << setfill(' ') << endl << endl;
 }
 

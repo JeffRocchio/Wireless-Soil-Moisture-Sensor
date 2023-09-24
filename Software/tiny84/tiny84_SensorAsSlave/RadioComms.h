@@ -39,8 +39,11 @@ class RadioComms {
        * where we need to have the data to be able to work on
        * it as appropriate. */
       struct RxPayloadStruct {
-      char message[11];
-      uint8_t counter;
+      uint8_t command;      // Command ID back from RPi | 1-byte
+      uint8_t uiCmdData;    // Command data field: unsigned int | 1-byte
+      int iCmdData;         // Command data field: signed int | 2-bytes
+      uint64_t uliCmdData;  // Command data field: unsigned long int | 4-bytes
+      float fCmdData;       // Command data field: float | 4-bytes
     };
 
   private:

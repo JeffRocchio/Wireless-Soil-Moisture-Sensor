@@ -26,15 +26,16 @@
 *    1. By design, this class is non-blocking.
 */
 
+#define DEFAULT_SLEEP_TIME 600000 // 10 minutes.
 
 class Dispatcher {
 
   private:
-    unsigned long _capReadingInterval = 15000; // Once every 15 seconds.
+    unsigned long _capReadingInterval = DEFAULT_SLEEP_TIME;
     unsigned long _capReadingStartTime = 0;
     float _capacitorValue = 0;
     bool _radioAvailable = false;
-    short int _phase = 0;
+    short int _phase = 0; // To take a reading immediately, initilize to Phase-1 instead of Phase-0.
     RadioComms::RxPayloadStruct* _ackPayloadPtr;
 
   public:

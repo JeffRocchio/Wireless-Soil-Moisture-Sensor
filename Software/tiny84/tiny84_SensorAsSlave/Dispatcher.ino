@@ -4,8 +4,16 @@
  *  detailed info and documentation that I didn't want to clutter up the code with; but which
  *  I am likely to want to remember when I come back to this in 6 months.  : ) 
  *   
- *      09/15/2023: This version is for test case TC03_TransmitPOC (1st test of RadioComms class). 
- * SUCCESS. See screenshot TC03_TransmitPOC_terminalDisplay.jpg.
+ *      09/24/2023: Put in logic for handling commands back from master. This includeds
+ * redefining the RadioComms::RxPayloadStruct struct. 
+ * 
+ *      09/20/2023: Changed the cap measure / TX cycle to occur once every 10 mins to make 
+ * this release suitable to put in a real plant pot and keep an eye on the readings every 
+ * so often in a real-world setting.
+
+ *      09/19/2023: With this version I believe I am now back to where I was at Milestone #11; 
+ *  but now in a 'non-blocking' mode with solid heartbeat and error reporting LED functions
+ *  implemented.
  *
  */
 //=================================================================================================
@@ -40,7 +48,7 @@ void Dispatcher::dispatch() {
    *    Once complete, clear the error, which on subsequent dispatch calls
    * will then fall through this test to allow other actions to be taken. */
   if(errorFlash.getErrorID() > 0) {
-    if(!errorFlash.isFlashing()) errorFlash.clear();
+    if(!errorFlash.isFlashing()) errorFlash.clear(); // Don't do this here. I clear any pending errors in the RadioComms object.
     return;
     }
 
@@ -79,6 +87,7 @@ void Dispatcher::dispatch() {
       break;
 
     case 3: // Wait for and fetch ACK payload.
+      // Note that it is therotically possible to get stuck in an infinite loop here...
       if(radio.ackAvailable()) {
         _ackPayloadPtr = radio.getAckPayload();
         _phase = 4;
@@ -88,8 +97,17 @@ void Dispatcher::dispatch() {
     case 4: // Handle master's command back to me.
       // Master command handler here....
       // For now tho, do a pseudo sleep state.
-      _phase = 0;
-      break;
+      switch(_ackPayloadPtr->command) {
+        case 1: // Command ID 01 | Sleep for uliCmdData milliseconds.
+          _capReadingInterval = _ackPayloadPtr->uliCmdData;
+          _capReadingStartTime = millis();
+          _phase = 0;
+          break;
+
+        default: // No command back. Sleep for last sleep time interval.
+          _phase = 0;
+          break;
+      }
   }
 
   /* ONGOING RADIO TRANSMISSION ---

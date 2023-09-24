@@ -8,6 +8,9 @@
  *  detailed info and documentation that I didn't want to clutter up the code with; but which
  *  I am likely to want to remember when I come back to this in 6 months.  : ) 
  *   
+ *      09/19/2023: When declaring the CapSensor object I flipped the order of the params,
+ * which caused capacitance to not actually get measured. So I just fixed that.
+ *
  *      09/15/2023: TC03_TransmitPOC successfully completed. This file has been updated to
  * reflect relevant code used in TC03_TransmitPOC.ino so that we have a sound starting basis
  * for the next iteration of updates.
@@ -51,7 +54,7 @@
   ErrorFlash errorFlash(LED_ERROR);                       // Instantiate an error reporting object.
   HeartBeat heartBeat(LED_GREEN);                         // Instantiate a HeartBeat object.
   RadioComms radio(CE_PIN, CSN_PIN);                      // instantiate my nRF24L01 transceiver wrapper object.
-  CapSensor capSensor(CAP_VOLTREAD_PIN, CAP_CHARGE_PIN);  // Instantiate a CapSensor object.
+  CapSensor capSensor(CAP_CHARGE_PIN, CAP_VOLTREAD_PIN);  // Instantiate a CapSensor object.
   Dispatcher dispatcher;                                  // Instantiate the Dispatcher object.
 
 // END Declare Global Variables
