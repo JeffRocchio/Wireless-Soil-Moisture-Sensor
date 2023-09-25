@@ -42,7 +42,7 @@ class RadioComms {
       uint8_t command;      // Command ID back from RPi | 1-byte
       uint8_t uiCmdData;    // Command data field: unsigned int | 1-byte
       int iCmdData;         // Command data field: signed int | 2-bytes
-      uint64_t uliCmdData;  // Command data field: unsigned long int | 4-bytes
+      uint32_t uliCmdData;  // Command data field: unsigned long int | 4-bytes
       float fCmdData;       // Command data field: float | 4-bytes
     };
 
@@ -61,7 +61,7 @@ class RadioComms {
 
     struct TxPayloadStruct {                // struct to accumulate txPayload data.
       float capacitance;
-      uint32_t chargeTime = 0;   // Time it took for capacitor to charge.
+      uint32_t cpuMillis = 0;    // Current time, in milliseconds, on the ATTiny clock.
       uint32_t ctSuccess = 0;    // count of success Tx attempts tiny84 has seen since boot
       uint32_t ctErrors = 0;     // count of Tx errors tiny84 saw since last successful transmit
       char units[4];             // nFD, mFD, FD

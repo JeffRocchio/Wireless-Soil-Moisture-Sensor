@@ -7,9 +7,14 @@
  *  /home/jroc/Dropbox/projects/MoistureSensor/CapSensor
  *  Refer to git for version history and associated comments.
  *
- *      09/24/2023: Put in logic for handling commands back from master. This includes
- * redefining the AckPayloadStruct struct to match up with RadioComms::RxPayloadStruct struct.
- * Also eliminated the timeout.
+ *      09/25/2023b: In struct AckPayloadStruct changed field uliCmdData from a uint64_t tp a
+ * uint32_t. And made matching change in the ATTiny code.
+ *
+ *      09/24/2023b: Changed field chargeTime to sensorTime in RxPayloadStruct.
+ *
+ *      09/24/2023a: GitCommit 61a3fd3. Put in logic for handling commands back from master.
+ * This includes redefining the AckPayloadStruct struct to match up with
+ * RadioComms::RxPayloadStruct struct. Also eliminated the timeout.
  *
  *
  *      09/20/2023: Modified the timeout to be 2-hours.
@@ -31,7 +36,7 @@
  *      00: No command back.
  *      01: Sleep for # of milliseconds in uliCmdData field, then take reading and send it to me.
 */
-#define VERSION "09-24-2023 rel 01"
+#define VERSION "09-25-2023 rel 01"
 
 /*
  * For nRF24 radio chip documentation see https://nRF24.github.io/RF24
@@ -44,6 +49,7 @@
 #include <iostream>    // cin, cout, endl
 #include <iomanip>     // format manipulators for use with cout
 #include <string>      // string, getline()
+#include <fstream>     // For writing a log text file.
 #include <time.h>      // CLOCK_MONOTONIC_RAW, timespec, clock_gettime()
 #include <RF24/RF24.h> // RF24, RF24_PA_LOW, delay()
 
@@ -71,7 +77,7 @@ uint8_t rxBytes[40];
     */
 struct RxPayloadStruct {
   float capacitance;
-  uint32_t chargeTime;            // Time it took for capacitor to charge.
+  uint32_t sensorTime;            // Time in milliseconds on the ATTiny clock at time of sensor reading.
   uint32_t ctSuccess;             // count of success Tx attempts tiny84 has seen since boot
   uint32_t ctErrors;              // count of Tx errors tiny84 saw since last successful transmit
   char units[4];                  // nFD, mFD, FD
@@ -85,7 +91,7 @@ struct AckPayloadStruct {
   uint8_t command;      // Command ID back to sensor | 1-byte
   uint8_t uiCmdData;    // Command data field: unsigned int | 1-byte
   int iCmdData;         // Command data field: signed int | 2-bytes
-  uint64_t uliCmdData;  // Command data field: unsigned long int | 4-bytes
+  uint32_t uliCmdData;  // Command data field: unsigned long int | 4-bytes
   float fCmdData;       // Command data field: float | 4-bytes
   };
 AckPayloadStruct ackPayload;
@@ -125,6 +131,7 @@ void displayRxbuffer(uint8_t* rxBytes, uint8_t size_rxBytes, uint8_t ctRawBytes)
 void loadRxStruct(RxPayloadStruct* pStruct, uint8_t* pBytes);                       // loads raw data into structure
 void showHexOfBytes(unsigned char* b, int iLen);                                    // display hex value of variables
 void displayAck(AckPayloadStruct* pStruct);                                         // display ack response data
+bool logReading(unsigned int uiReading);                                            // Log sensor reading to log file.
 
 
 
@@ -211,6 +218,10 @@ void setRole() {
  * in interactions with the sensor. But the RPi code needs to be cleaned up
  * anyway so for now I'm not messing with changing the function name. */
 void slave() {
+        // Working variables.
+    time_t lastLog = time(0);
+    time_t logInterval = 60 * 60; // Log every hour.
+
         // Set ACK payload.
     ackPayload.command = 0;
     ackPayload.uiCmdData = 0;
@@ -234,10 +245,14 @@ void slave() {
             radio.read(&rxBytes[0], sizeof(rxBytes));                   // fetch payload from RX FIFO
             loadRxStruct(&rxPayload, rxBytes);                          // Manually' load rxPayload structure from the received bytes array.
             dspRx.displayRxResults(&rxPayload, true);                   // display received transmission info
-            ackPayload.command = 0;                                     // No instructions back to sensor at this time.
+            ackPayload.command = 0;                                     // Instructions back to sensor at next data receipt.
             radio.writeAckPayload(1, &ackPayload, sizeof(ackPayload));  // Load the ACK payload for use on the next received Tx
+            if(time(0) > lastLog + logInterval) {
+                logReading(rxPayload.capacitance);
+                lastLog = time(0);
+            }
         } // if received something
-    } // END while loop
+    } // BOTTOM of while loop
 
         /* In current logic design we never get to this line. But at
          * some point I'd like to have a legitimate user interface
@@ -246,7 +261,7 @@ void slave() {
          * back to the sensor. So just leaving this here for now. */
             // Recommended idle behavior is TX mode.
     radio.stopListening();
-} // END slave()
+} // BOTTOM of slave()
 
 
 
@@ -317,8 +332,8 @@ void loadRxStruct(RxPayloadStruct* pStruct, uint8_t* pBytes) {
     pStruct->capacitance = *(float *)&pBytes[offset];
     offset = offset + sizeof(pStruct->capacitance);
 
-    pStruct->chargeTime = *(uint32_t *)&pBytes[offset];
-    offset = offset + sizeof(pStruct->chargeTime);
+    pStruct->sensorTime = *(uint32_t *)&pBytes[offset];
+    offset = offset + sizeof(pStruct->sensorTime);
 
     pStruct->ctSuccess = *(uint32_t *)&pBytes[offset];
     offset = offset + sizeof(pStruct->ctSuccess);
@@ -397,10 +412,10 @@ void DisplayRxPacket::displayRxResults(RxPayloadStruct* pStruct, bool bCurReset)
     showHexOfBytes((unsigned char*)&rxPayload.capacitance,sizeof(rxPayload.capacitance));
     cout << endl;
 
-    cout << setw(wdthVarName) << setfill(' ') << " chargeTime: ";
-    cout << setw(2) << (unsigned int)sizeof(rxPayload.chargeTime);
-    cout << " | " << setw(wdthValue) << rxPayload.chargeTime << " | 0x ";
-    showHexOfBytes((unsigned char*)&rxPayload.chargeTime,sizeof(rxPayload.chargeTime));
+    cout << setw(wdthVarName) << setfill(' ') << " sensorTime: ";
+    cout << setw(2) << (unsigned int)sizeof(rxPayload.sensorTime);
+    cout << " | " << setw(wdthValue) << rxPayload.sensorTime << " | 0x ";
+    showHexOfBytes((unsigned char*)&rxPayload.sensorTime,sizeof(rxPayload.sensorTime));
     cout << endl;
 
     cout << setw(wdthVarName) << setfill(' ') << " ctSuccess: ";
@@ -444,4 +459,28 @@ void DisplayRxPacket::showHexOfBytes(unsigned char* b, int iLen) {
     cout << dec;
 }
 
+
+bool logReading(unsigned int uiReading) {
+
+    // Open a file for appending sensor readings
+    std::ofstream logFile;
+    logFile.open("/home/readings.txt", std::ios::app);
+
+    if (!logFile.is_open()) {
+        std::cerr << "Error opening the log file." << std::endl;
+        return false;
+    }
+
+    // Get the current time
+    time_t now = time(0);
+    tm* localTime = localtime(&now);
+
+    // Write the sensor reading and timestamp to the log file
+    logFile << "Timestamp: " << asctime(localTime) << "  Sensor Reading: " << uiReading << std::endl;
+
+    // Close the file
+    logFile.close();
+
+    return true;
+}
 

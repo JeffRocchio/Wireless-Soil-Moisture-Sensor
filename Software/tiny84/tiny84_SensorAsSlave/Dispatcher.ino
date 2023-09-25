@@ -4,8 +4,16 @@
  *  detailed info and documentation that I didn't want to clutter up the code with; but which
  *  I am likely to want to remember when I come back to this in 6 months.  : ) 
  *   
- *      09/24/2023: Put in logic for handling commands back from master. This includeds
- * redefining the RadioComms::RxPayloadStruct struct. 
+ *      09/25/2023b: In struct AckPayloadStruct changed field uliCmdData from a uint64_t tp a 
+ * uint32_t. And made matching change in the RPi code.
+ *
+ *      09/24/2023b: Put in logic for timing out on Tx retry attempts. After 100 retries we 
+ * abort the Tx attempt with errorID #5. In implementing this I did change the sense of the 
+ * ctErrorCt field so that it now reports the number of re-transmit failures on each Tx 
+ * attempt instead of being a lifetime error count.
+ *
+ *      09/24/2023a: GitCommit 61a3fd3. Put in logic for handling commands back from master. 
+ * This includeds redefining the RadioComms::RxPayloadStruct struct. 
  * 
  *      09/20/2023: Changed the cap measure / TX cycle to occur once every 10 mins to make 
  * this release suitable to put in a real plant pot and keep an eye on the readings every 
@@ -114,6 +122,12 @@ void Dispatcher::dispatch() {
   /*    Give a CPU slice to the radio object for it to do a 
    * chunk of Tx/Rx pending work (if any is in process).  */
   errorFlash.setError(radio.update());
+    // If we have an errorID #5 then we abort the TX and reset with the default sleep period.
+  if(errorFlash.getErrorID() == 5) {
+    _capReadingInterval = DEFAULT_SLEEP_TIME;
+    _capReadingStartTime = millis();
+    _phase = 0;
+  }
 
 }
 

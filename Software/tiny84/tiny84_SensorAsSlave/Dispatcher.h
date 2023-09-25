@@ -26,7 +26,9 @@
 *    1. By design, this class is non-blocking.
 */
 
-#define DEFAULT_SLEEP_TIME 600000 // 10 minutes.
+//#define DEFAULT_SLEEP_TIME 600000 // 10 minutes.
+//#define DEFAULT_SLEEP_TIME 60000*2 // 2 minutes.
+#define DEFAULT_SLEEP_TIME 60000 // 1 minute.
 
 class Dispatcher {
 

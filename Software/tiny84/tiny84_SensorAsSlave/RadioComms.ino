@@ -4,6 +4,19 @@
  *  detailed info and documentation that I didn't want to clutter up the code with; but which
  *  I am likely to want to remember when I come back to this in 6 months.
  *
+ *      09/25/2023: Fixed bug in RadioComms::update, the timouout logic for Phase-2, whereby
+ * my failure to set phase back to 0 had the effect of not aborting the current Tx in flight
+ * and starting a new Wait/CapRead/Tx cycle.
+ *
+ *      09/24/2023b: Changed field chargeTime to sensorTime in TxPayloadStruct. Implemented an
+ * error count timeout for ack receive fails. After 100 retries we abort the Tx attempt with
+ * errorID #5. In implementing this I did change the sense of the ctErrorCt field so that it
+ * now reports the number of re-transmit failures on each Tx attempt instead of being a lifetime
+ * error count.
+ *
+ *      09/24/2023a: GitCommit 61a3fd3. Mods to Tx and rxAck structs to implement commands 
+ * back from RPi.
+ *
  *      09/20/2023: Sending ATTiny millis() in the 'chargeTime' field; for ref over on the RPi.
  * Added statement to clear any existing error upon successful Tx/Rx-ACK back.
  *
@@ -53,9 +66,9 @@ void RadioComms::setTxPayload(float fCap) {
 
   /* To get us started with testing our concept out, let's just dummy up some data to transmit. */
   _txPayload.capacitance = fCap;                     // calculated capacitance
-  _txPayload.chargeTime = millis();                  // Send CPU current time just for reference.
+  _txPayload.cpuMillis = millis();                   // Provide RPi withCPU current time.
   memcpy(_txPayload.units, "pF ", 3);                // capacitance units
-  memcpy(_txPayload.statusText, "testing", 7);
+  memcpy(_txPayload.statusText, "testing", 7);       // Eventually get rid of this.
 
   _rxPayloadAvailable = false;                       // Make sure we 'reset' from any prior Tx cycle.
 
@@ -73,13 +86,20 @@ short int RadioComms::update() {
         bool report = _radioChip.write(&_txPayload, sizeof(_txPayload)); 
         if(report) {
           _txPayload.ctSuccess++;
+          _txPayload.ctErrors = 0;                                 // Success - clear any prior error.
+          iErr = 0;
           _phase = 2;
-          iErr = 0;                                                // Success - clear any prior error.
         } else {
           _txPayload.ctErrors++;
           iErr = 2;                                                 // Call this error #2. Stay in phase-1 for a retry.
-        }
+            // If error count exceeds tolerence, abort with errorID #5.
+          if(_txPayload.ctErrors > 10) {
+            _txPayload.ctErrors = 0;
+            _phase = 0;
+            iErr = 5;
+          }
         _lastMillis = millis();                                     // In effect, restart the txWaitDelay.
+        }
       }
       break;
 
