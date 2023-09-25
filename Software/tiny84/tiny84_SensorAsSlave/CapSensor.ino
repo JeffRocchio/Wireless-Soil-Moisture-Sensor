@@ -4,6 +4,11 @@
  *  detailed info and documentation that I didn't want to clutter up the code with; but which
  *  I am likely to want to remember when I come back to this in 6 months.
  *
+ *      09/25/2023: Fixed some logic flow in transitioning between phases which blocked us
+ * from getting into phase-3. Also note that the 'inf' cap reading value error was fixed - this 
+ * was caused by putting the parameters in the reverse order in the CapSensor capSensor() 
+ * declaration.
+ *
  *      09/18/2023: Fixed failure to clear _capAccumulator on new reading initiation.
  *
  *      09/17/2023: Added function to retreive the measured value of the sensor's capacitance.
@@ -51,6 +56,7 @@ void CapSensor::initiateSensorReading() {
   _capAccumulator = 0;
   _readingAvailable = false;
   _ReadingsRemain = NUM_READINGS_TO_AVERAGE;  // Establish number of measurements to average over.
+  _nextMeasureMillis = 0;
   _measurePhase = 1;                          // Start the process by moving into Phase-1 of the reading protocol.  
 }
 
@@ -60,16 +66,20 @@ bool CapSensor::readingAvailable() {
 
   switch(_measurePhase) {
     case 1:                                   // Phase-1: Pulse, Read & Clear.
-      pulseAndReadVolts();
-      _measurePhase = 2;
+      if(millis()>_nextMeasureMillis) {       // But only if hard-coded inter-measurement 'rest time' has elapsed.
+        pulseAndReadVolts();
+        _measurePhase = 2;
+      }
       break;
 
     case 2:                                   // Phase-2: Calculate Capacitance.
-      if(millis()>_nextMeasureMillis) {       // But only if hard-coded inter-measurement 'rest time' has elapsed.
-        _capAccumulator +=  (float)(_tempVolts * IN_STRAY_CAP_TO_GND) / (float)(MAX_ADC_VALUE - _tempVolts);
-        _ReadingsRemain--;
-        _nextMeasureMillis = millis() + INTER_MEASUREMENT_DELAY;
-        if(!_ReadingsRemain) _measurePhase = 3;
+      _capAccumulator +=  (float)(_tempVolts * IN_STRAY_CAP_TO_GND) / (float)(MAX_ADC_VALUE - _tempVolts);
+      _ReadingsRemain--;
+      _nextMeasureMillis = millis() + INTER_MEASUREMENT_DELAY;
+      if(_ReadingsRemain) {
+        _measurePhase = 1;
+      } else {
+        _measurePhase = 3;
       }
       break;
 
