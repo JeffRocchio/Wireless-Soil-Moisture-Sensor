@@ -4,8 +4,20 @@
  *  detailed info and documentation that I didn't want to clutter up the code with; but which
  *  I am likely to want to remember when I come back to this in 6 months.
  *
- *      09/18/2023: Fixed missing _rxPayloadAvailable = true; in Phase-2 logic.
+ * 09/26/2023:
+ *    > Changed field chargeTime to sensorTime in TxPayloadStruct.
+ *    > Added code to populate sensorTime at each transmit cycle start.
+ *    > THIS CHANGE TRIGGERED THE ERROR OF ISSUE-1 --->> 
+ *        Redefined the AckPayloadStruct struct to support the intended command/response 
+ *        protocol specified in the log entry for milestone #12. Tho at this point have not
+ *        implemented doing anything with that data coming back from the RPi.
+ *          I changed that struct to be only 2 fields, both uint32_t, and with that
+ *          change it works. So it's something to do with byte alignment/boundaries
+ *          in the struct definitions. I am assuming that misalignment causes overflows, 
+ *          memory leaks, or other types of corruptions.
  *
+ * 09/18/2023:
+ *    > Fixed missing _rxPayloadAvailable = true; in Phase-2 logic.
  */
 //=================================================================================================
 
@@ -50,6 +62,7 @@ void RadioComms::setTxPayload(float fCap) {
 
   /* To get us started with testing our concept out, let's just dummy up some data to transmit. */
   _txPayload.capacitance = fCap;                     // calculated capacitance
+  _txPayload.sensorTime = millis();                  // Load current CPU time to payload.
   memcpy(_txPayload.units, "---", 3);                // capacitance units
   memcpy(_txPayload.statusText, "testing", 7);
 
@@ -94,7 +107,7 @@ short int RadioComms::update() {
       break;
 
     default:                        // Phase-0: Do nothing.
-      _lastMillis = millis(); // <-- This doesn't really have any practical effect given the current process flow.
+      _lastMillis = millis();
       break;
   }
   return(iErr);

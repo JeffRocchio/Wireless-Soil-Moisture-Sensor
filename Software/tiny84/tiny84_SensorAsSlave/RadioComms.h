@@ -38,9 +38,16 @@ class RadioComms {
        * pointer to it inside the Dispatcher class, which is 
        * where we need to have the data to be able to work on
        * it as appropriate. */
-      struct RxPayloadStruct {
-      char message[11];
-      uint8_t counter;
+    struct RxPayloadStruct {
+      uint32_t command;
+      uint32_t uliCmdData;
+
+      /*uint8_t command;      // Command ID back from the RPi | 1-byte
+      uint8_t uiCmdData;    // Command data field: unsigned int | 1-byte
+      int iCmdData;         // Command data field: signed int | 2-bytes
+      uint32_t uliCmdData;  // Command data field: unsigned long int | 4-bytes
+      float fCmdData;       // Command data field: float | 4-bytes
+      */
     };
 
   private:
@@ -58,7 +65,7 @@ class RadioComms {
 
     struct TxPayloadStruct {                // struct to accumulate txPayload data.
       float capacitance;
-      uint32_t chargeTime = 0;   // Time it took for capacitor to charge.
+      uint32_t sensorTime = 0;   // Time on ATTiny clock at transmit attempt.
       uint32_t ctSuccess = 0;    // count of success Tx attempts tiny84 has seen since boot
       uint32_t ctErrors = 0;     // count of Tx errors tiny84 saw since last successful transmit
       char units[4];             // nFD, mFD, FD

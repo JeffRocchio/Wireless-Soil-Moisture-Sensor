@@ -13,4 +13,6 @@ The folder ProjectLog contains detailed notes on all the trials, tribulations, a
 
 # Status
 
-**7/18/2023**: I am working on *Milestone #12*: Redesigning the ATTiny84 and Raspberry Pi software to be 'Event-Driven,' 'Non-Blocking,' and conversational. I have a good start on doing this for the ATTiny84 code, using the `tiny84_SensorAsSlave` sketch/application. I have not yet done any of this work on the Raspberry Pi side. I also created a protocol of sorts for myself for managing test cases in the Arduino environment. This is documented in /home/`Software/tiny84/Readme-TESTcases.md`.
+**9/26/2023**: I am working on *Milestone #12*: Redesigning the ATTiny84 and Raspberry Pi software to be 'Event-Driven,' 'Non-Blocking,' and conversational. I am close to completing this. I just worked out what was causing Issue #1. So I now need to finalize the fixup for that issue, then implement the ability to handle commands on the ATTiny side.
+
+**July 2023**: I created a protocol of sorts for myself for managing test cases in the Arduino environment. This is documented in /home/`Software/tiny84/Readme-TESTcases.md`.

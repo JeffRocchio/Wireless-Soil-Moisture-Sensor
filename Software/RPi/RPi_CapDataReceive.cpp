@@ -7,19 +7,38 @@
  *  /home/jroc/Dropbox/projects/MoistureSensor/CapSensor
  *  Refer to git for version history and associated comments.
  *
- *      09/18/2023: Removed user prompt to input radio number. Hard-coding it to always be transmitting
- * to the ATTiny's radio chip - that is, address "2Node." Also modified the timeout to be 10 minutes.
+ * 09/26/2023-rel01:
+ *      > Removed user prompt to input role (i.e., rx vs tx in setrole()). Hard coded it to always be
+ *        in the 'receiving' (a.k.a., 'slave,') role.
+ *      > Removed timeout completely. So we are in an infinite loop always listening for Tx's from
+ *        the ATTiny's radio.
+ *      > Changed field chargeTime to sensorTime in RxPayloadStruct.
+ *      > THIS CHANGE TRIGGERED THE ERROR OF ISSUE-1 --->>
+ *           Redefined the AckPayloadStruct struct to match up with RadioComms::RxPayloadStruct struct
+ *           to support the intended command/response protocol specified in the log entry for milestone #12.
+ *              I changed that struct to be only 2 fields, both uint32_t, and with that
+ *              change it works. So it's something to do with byte alignment/boundaries
+ *              in the struct definitions. I am assuming that misalignment causes overflows,
+ *              memory leaks, or other types of corruptions.
  *
- *      09/15/2023: Modified the RsPayloadStruct to match a tweak I made on the RPi side.
- * (Moved the units variable down to be with the statusText string so all the numeric
- * variables would be stacked atop the stings. My thought is to achieve 4-byte alignment
- * to eventually see if I can cease with custom data load routine for the structure.)
  *
- *      10/04/2022: Initial program to receive, and display on the console, the data structure
- * populated, and transmitted, by the ATTiny84/nRF24 prototype device.
+ * 09/18/2023-rel01:
+ *      > Removed user prompt to input radio number. Hard-coding it to always be transmitting
+ *        to the ATTiny's radio chip address - that is, address "2Node."
+ *      > Modified the timeout to be 10 minutes.
  *
+ * 09/15/2023-rel01:
+ *      > Modified the RxPayloadStruct to match a tweak I made on the ATTiny side.
+ *        (Moved the units variable down to be with the statusText string so all the numeric
+ *        variables would be stacked atop the stings. My thought is to achieve 4-byte
+ *        alignment to eventually see if I can cease with custom data load routine for
+ *        the structure.)
+ *
+ * 10/04/2022-rel01:
+ *      > Initial program to receive, and display on the console, the data structure
+ *        populated, and transmitted, by the ATTiny84/nRF24 prototype device.
  */
-#define VERSION "09-15-2023 rel 01"
+#define VERSION "09-26-2023 rel 01"
 
 /*
  * For nRF24 radio chip documentation see https://nRF24.github.io/RF24
@@ -59,7 +78,7 @@ uint8_t rxBytes[40];
     */
 struct RxPayloadStruct {
   float capacitance;
-  uint32_t chargeTime;            // Time it took for capacitor to charge.
+  uint32_t sensorTime;            // Milliseconds on ATTiny clock at time of transmission.
   uint32_t ctSuccess;             // count of success Tx attempts tiny84 has seen since boot
   uint32_t ctErrors;              // count of Tx errors tiny84 saw since last successful transmit
   char units[4];                  // nFD, mFD, FD
@@ -70,8 +89,15 @@ RxPayloadStruct rxPayload;
     /* Structure to store the outgoing ACK payload
     */
 struct AckPayloadStruct {
-  char message[11];               // Outgoing message, up to 10 chrs+Null.
-  uint8_t counter;
+    uint32_t command;
+    uint32_t uliCmdData;
+
+    /*uint8_t command;      // Command ID back to sensor | 1-byte
+    uint8_t uiCmdData;    // Command data field: unsigned int | 1-byte
+    int iCmdData;         // Command data field: signed int | 2-bytes
+    uint32_t uliCmdData;  // Command data field: unsigned long int | 4-bytes
+    float fCmdData;       // Command data field: float | 4-bytes
+    */
 };
 AckPayloadStruct ackPayload;
 
@@ -110,6 +136,7 @@ void displayRxbuffer(uint8_t* rxBytes, uint8_t size_rxBytes, uint8_t ctRawBytes)
 void loadRxStruct(RxPayloadStruct* pStruct, uint8_t* pBytes);                       // loads raw data into structure
 void showHexOfBytes(unsigned char* b, int iLen);                                    // display hex value of variables
 void displayAck(AckPayloadStruct* pStruct);                                         // display ack response data
+void setAckPayload(uint32_t cmd, uint32_t uliData);                                 // Load the ack response data packet
 
 
 
@@ -149,7 +176,11 @@ int main(int argc, char** argv) {
     radio.printPrettyDetails();     // (larger) function that prints human readable data
 
     // ready to execute program now
-    setRole(); // calls master() or slave() based on user input
+    // setRole(); // calls master() or slave() based on user input <- See below comment.
+    slave(); /* 9/26/2023: Removing user input for role. "slave" is bad naming here
+    * as I am now treating the RPi as the 'master' and the sensor as
+    * the 'slave.' But the RPi code all needs to be cleaned up at some
+    * point anyway. */
     return 0;
 
 } // Main()
@@ -161,12 +192,13 @@ int main(int argc, char** argv) {
    =============================================================================
 */
 
-/* Set this node's role from stdin stream.
-   This only considers the first char as input.
-   Raspberry Pi will be a receive-only node.
-   This function then calls slave(), which runs an infinte loop, unless we
-   timeout not receiving any data from the tiny84.
-*/
+/* 09/26/20233: This function is now obsolete.
+ * Set this node's role from stdin stream.
+ *   This only considers the first char as input.
+ *   Raspberry Pi will be a receive-only node.
+ *   This function then calls slave(), which runs an infinte loop, unless we
+ *   timeout not receiving any data from the tiny84.
+ */
 void setRole() {
     string input = "";
     while (!input.length()) {
@@ -188,41 +220,35 @@ void setRole() {
 
 /* Performs receiver-role tasks */
 void slave() {
-    memcpy(ackPayload.message, "Pkt Count ", 10);          // set the ackPayload message
-    ackPayload.counter = 0;                                // set the ackPayload counter
+    setAckPayload(0, 15000);                               // Populate ack payload struct for next Rx/ack cycle.
     DisplayRxPacket dspRx;                                 // create object to display received packets
 
-
-
         /* Load the ackPayload for first received
-           transmission on pipe 0.
-        */
+           transmission on pipe 0. */
     radio.writeAckPayload(1, &ackPayload, sizeof(ackPayload));
 
     radio.startListening();                                             // put radio in RX mode
-    time_t startTimer = time(nullptr);                                  // start a timer
-    while (time(nullptr) - startTimer < 600) {                          // use 10 minute timeout
+    while (true) {                                                        // No timeout, infinite loop here.
         uint8_t pipe;
         if (radio.available(&pipe)) {                                   // is there a received payload? get the pipe number that recieved it
             uint8_t bytes = radio.getDynamicPayloadSize();              // <<-- NOTE: Compilier says we never use this anywhere. Myes, get it's size
             radio.read(&rxBytes[0], sizeof(rxBytes));                   // fetch payload from RX FIFO
             loadRxStruct(&rxPayload, rxBytes);                          // Manually' load rxPayload structure from the received bytes array.
             dspRx.displayRxResults(&rxPayload, true);                                    // display received transmission info
-            startTimer = time(nullptr);                                 // Reset the timer
-            ackPayload.counter = ackPayload.counter + 1;                // Increment the 'payloads received' counter.
-            radio.writeAckPayload(1, &ackPayload, sizeof(ackPayload));  // Load the ACK payload for use on the next received Tx
-        } // if received something
-    } // while
+            //ackPayload.counter = ackPayload.counter + 1;                // Increment the 'payloads received' counter.
+            setAckPayload(0, 15000);                                    // Populate ack payload struct for next Rx/ack cycle.
+            radio.writeAckPayload(1, &ackPayload, sizeof(ackPayload));  // Load the ACK payload into writing pipe for next cycle.
+        } // BOTTOM of if(radio.available(&pipe))
+    } // BOTTOM of while loop
 
         /* Handle radio listening timout case. Which, other than a Control-C by
            the user, is the only way the slave() function ends. And upon ending
            we return back to the setRole() function's while loop, allowing the
            user to quite or initiate another try.
         */
-    cout << "Timeout While Waiting to Receive Data. Leaving RX role." << endl;
-    cout << "You may quite or press r to try again." << endl;
-    radio.stopListening();                                              // recommended idle behavior is TX mode
-} // slave
+    radio.stopListening();                                              // recommended idle behavior is TX mode, tho we never get to this line.
+    cout << "Just executed radio.stopListening(); ";                    // But IF we do, notify user of this fact.
+} // BOTTOM of slave()
 
 
 
@@ -261,13 +287,16 @@ void displayRxbuffer(uint8_t* rxBytes, uint8_t size_rxBytes, uint8_t ctRawBytes)
 
 /* Display onto the console what we are going to ACK back with.
    ----------------------------------------------------------------------------
-   REQUIRES: ackPayload struct has been loaded with intended response data.
- */
+   REQUIRES: ackPayload struct has been loaded with intended response data. */
 void displayAck(AckPayloadStruct* pStruct) {
-            cout << " Sent in Response: ";
-            cout << pStruct->message;
-            cout << (unsigned int)pStruct->counter << endl;
+            cout << " Sent in Response: (NOT SHOWING AS I DEBUG ISSUE-1)";
+            /*cout << (uint8_t)pStruct->command << endl;
+            cout << (uint8_t)pStruct->uiCmdData << endl;
+            cout << (int)pStruct->iCmdData << endl;
+            cout << (uint32_t)pStruct->uliCmdData << endl;
+            cout << (float)pStruct->fCmdData << endl;
             cout << setfill('-') << setw(50) << "-" << setfill(' ') << endl << endl;
+            */
 }
 
 
@@ -290,8 +319,8 @@ void loadRxStruct(RxPayloadStruct* pStruct, uint8_t* pBytes) {
     pStruct->capacitance = *(float *)&pBytes[offset];
     offset = offset + sizeof(pStruct->capacitance);
 
-    pStruct->chargeTime = *(uint32_t *)&pBytes[offset];
-    offset = offset + sizeof(pStruct->chargeTime);
+    pStruct->sensorTime = *(uint32_t *)&pBytes[offset];
+    offset = offset + sizeof(pStruct->sensorTime);
 
     pStruct->ctSuccess = *(uint32_t *)&pBytes[offset];
     offset = offset + sizeof(pStruct->ctSuccess);
@@ -370,10 +399,10 @@ void DisplayRxPacket::displayRxResults(RxPayloadStruct* pStruct, bool bCurReset)
     showHexOfBytes((unsigned char*)&rxPayload.capacitance,sizeof(rxPayload.capacitance));
     cout << endl;
 
-    cout << setw(wdthVarName) << setfill(' ') << " chargeTime: ";
-    cout << setw(2) << (unsigned int)sizeof(rxPayload.chargeTime);
-    cout << " | " << setw(wdthValue) << rxPayload.chargeTime << " | 0x ";
-    showHexOfBytes((unsigned char*)&rxPayload.chargeTime,sizeof(rxPayload.chargeTime));
+    cout << setw(wdthVarName) << setfill(' ') << " sensorTime: ";
+    cout << setw(2) << (unsigned int)sizeof(rxPayload.sensorTime);
+    cout << " | " << setw(wdthValue) << rxPayload.sensorTime << " | 0x ";
+    showHexOfBytes((unsigned char*)&rxPayload.sensorTime,sizeof(rxPayload.sensorTime));
     cout << endl;
 
     cout << setw(wdthVarName) << setfill(' ') << " ctSuccess: ";
@@ -415,6 +444,15 @@ void DisplayRxPacket::showHexOfBytes(unsigned char* b, int iLen) {
         cout << setfill('0') << setw(2) << hex << (unsigned int)b[k] << " ";
     }
     cout << dec;
+}
+
+
+void setAckPayload(uint32_t cmd, uint32_t uliData) {
+    ackPayload.command = cmd;
+    ackPayload.uliCmdData = 0;
+    //ackPayload.iCmdData = 0;
+    //ackPayload.uliCmdData = uliData;
+    //ackPayload.fCmdData = 0;
 }
 
 
