@@ -1,12 +1,16 @@
 //Moisture Sensor Project - ATTiny84 Code
 
-#define VERSION "SEN_091523"
+#define VERSION "SEN_092723"
 /*    DESCRIPTION: Arduino sketch to make the ATTiny84 MCU serve as a Slave sensor, with 
  * a Raspberry Pi as the Master - i.e., sensor server.
  *
  *    FOOTNOTES: Note that there are 'footnotes' at the bottom of this file that provide more
  *  detailed info and documentation that I didn't want to clutter up the code with; but which
  *  I am likely to want to remember when I come back to this in 6 months.  : ) 
+ *
+ *      09/27/2023: No changes to this particular file. One change made in Dispatcher.h 
+ * to set the cap reading interval to 15 minutes. And with that change this version is
+ * my 'beta' release for testing in a real plant pot to see how it goes.
  *
  *      09/25/2023: Fixed the 'inf' cap reading issue. This was caused by putting the
  * parameters in the reverse order in the CapSensor capSensor() declaration.

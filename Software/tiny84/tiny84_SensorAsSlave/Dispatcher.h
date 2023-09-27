@@ -26,11 +26,12 @@
 *    1. By design, this class is non-blocking.
 */
 
+#define CAP_READ_INTERVAL 60000*15             // 60,000 milliseconds is one minute.
 
 class Dispatcher {
 
   private:
-    unsigned long _capReadingInterval = 15000; // Once every 15 seconds.
+    unsigned long _capReadingInterval = CAP_READ_INTERVAL;
     unsigned long _capReadingStartTime = 0;
     float _capacitorValue = 0;
     bool _radioAvailable = false;

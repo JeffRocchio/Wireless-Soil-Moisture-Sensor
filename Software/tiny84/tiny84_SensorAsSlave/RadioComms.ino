@@ -6,6 +6,9 @@
  *
  * 09/26/2023:
  *    > Changed field chargeTime to sensorTime in TxPayloadStruct.
+ *
+ * 09/26/2023:
+ *    > Changed field chargeTime to sensorTime in TxPayloadStruct.
  *    > Added code to populate sensorTime at each transmit cycle start.
  *    > THIS CHANGE TRIGGERED THE ERROR OF ISSUE-1 --->> 
  *        Redefined the AckPayloadStruct struct to support the intended command/response 

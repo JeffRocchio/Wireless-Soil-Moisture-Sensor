@@ -4,11 +4,16 @@
  *  detailed info and documentation that I didn't want to clutter up the code with; but which
  *  I am likely to want to remember when I come back to this in 6 months.  : ) 
  *   
- *      09/25/2023a: Created logic structure in dispatch() for the goals in Milestone #12.
- * As of this update I am successfully reading capacitance, transmitting over to the RPi, the
- * RPi is displaying results on the terminal. The ATTiny is saying it is getting ack packets
- * back from the RPi - tho I haven't yet 'proven' that fact. 
- * I made a commit on branch Issue-1 at this point: WIP Basic Read/Tx/Ack-back working.
+ * 09/27/2023: 
+ *    > Changed the sensor-read/Transmit cycle to once every 15 minutes.
+ *    > This is my 1st version for 'beta testing' in a live flower pot.
+ *
+ * 09/25/2023: 
+ *    > Created logic structure in dispatch() for the goals in Milestone #12.
+ *      As of this update I am successfully reading capacitance, transmitting over to the 
+        RPi, the RPi is displaying results on the terminal. The ATTiny is saying it is 
+        getting ack packets back from the RPi - tho I haven't yet 'proven' that fact. 
+ *      I made a commit on branch Issue-1 at this point: WIP Basic Read/Tx/Ack-back working.
  *
  */
 //=================================================================================================
