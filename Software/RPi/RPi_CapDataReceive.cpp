@@ -7,6 +7,9 @@
  *  /home/jroc/Dropbox/projects/MoistureSensor/CapSensor
  *  Refer to git for version history and associated comments.
  *
+ * 09/27/2023-rel01:
+ *      > Implemented writing received sensor readings to a text log file.
+ *
  * 09/26/2023-rel01:
  *      > Removed user prompt to input role (i.e., rx vs tx in setrole()). Hard coded it to always be
  *        in the 'receiving' (a.k.a., 'slave,') role.
@@ -38,7 +41,11 @@
  *      > Initial program to receive, and display on the console, the data structure
  *        populated, and transmitted, by the ATTiny84/nRF24 prototype device.
  */
-#define VERSION "09-26-2023 rel 01"
+#define VERSION "09-27-2023 rel 01"
+
+#define LOG_FILEPATH "/home/readings.txt"
+//#define LOG_INTERVAL 60           // This is in seconds. 60=1 minute.
+#define LOG_INTERVAL 60 * 60 * 2    // Let's start with once every 2 hours for initial deployment.
 
 /*
  * For nRF24 radio chip documentation see https://nRF24.github.io/RF24
@@ -52,6 +59,7 @@
 #include <iomanip>     // format manipulators for use with cout
 #include <string>      // string, getline()
 #include <time.h>      // CLOCK_MONOTONIC_RAW, timespec, clock_gettime()
+#include <fstream>     // For writing a log text file.
 #include <RF24/RF24.h> // RF24, RF24_PA_LOW, delay()
 
 using namespace std;
@@ -137,6 +145,7 @@ void loadRxStruct(RxPayloadStruct* pStruct, uint8_t* pBytes);                   
 void showHexOfBytes(unsigned char* b, int iLen);                                    // display hex value of variables
 void displayAck(AckPayloadStruct* pStruct);                                         // display ack response data
 void setAckPayload(uint32_t cmd, uint32_t uliData);                                 // Load the ack response data packet
+bool logData(RxPayloadStruct* rxData);                                              // Write a log entry.
 
 
 
@@ -220,6 +229,11 @@ void setRole() {
 
 /* Performs receiver-role tasks */
 void slave() {
+    // Working variables.
+    time_t lastLog = time(0);
+    time_t logInterval = LOG_INTERVAL;
+
+
     setAckPayload(0, 15000);                               // Populate ack payload struct for next Rx/ack cycle.
     DisplayRxPacket dspRx;                                 // create object to display received packets
 
@@ -228,17 +242,20 @@ void slave() {
     radio.writeAckPayload(1, &ackPayload, sizeof(ackPayload));
 
     radio.startListening();                                             // put radio in RX mode
-    while (true) {                                                        // No timeout, infinite loop here.
+    while (true) {                                                      // No timeout, infinite loop here.
         uint8_t pipe;
         if (radio.available(&pipe)) {                                   // is there a received payload? get the pipe number that recieved it
             uint8_t bytes = radio.getDynamicPayloadSize();              // <<-- NOTE: Compilier says we never use this anywhere. Myes, get it's size
             radio.read(&rxBytes[0], sizeof(rxBytes));                   // fetch payload from RX FIFO
             loadRxStruct(&rxPayload, rxBytes);                          // Manually' load rxPayload structure from the received bytes array.
-            dspRx.displayRxResults(&rxPayload, true);                                    // display received transmission info
-            //ackPayload.counter = ackPayload.counter + 1;                // Increment the 'payloads received' counter.
+            dspRx.displayRxResults(&rxPayload, true);                   // display received transmission info
             setAckPayload(0, 15000);                                    // Populate ack payload struct for next Rx/ack cycle.
             radio.writeAckPayload(1, &ackPayload, sizeof(ackPayload));  // Load the ACK payload into writing pipe for next cycle.
-        } // BOTTOM of if(radio.available(&pipe))
+            if(time(0) > lastLog + logInterval) {                       // Time to write log entry?
+                logData(&rxPayload);
+                lastLog = time(0);
+            } //BOTTOM of IF[test if time to write log entry]
+        } // BOTTOM of IF[test if payload received]]
     } // BOTTOM of while loop
 
         /* Handle radio listening timout case. Which, other than a Control-C by
@@ -455,4 +472,35 @@ void setAckPayload(uint32_t cmd, uint32_t uliData) {
     //ackPayload.fCmdData = 0;
 }
 
+bool logData(RxPayloadStruct* rxData) {
+
+    // Open a file for appending sensor readings
+    std::ofstream logFile;
+    logFile.open(LOG_FILEPATH, std::ios::app);
+
+    if (!logFile.is_open()) {
+        std::cerr << "Error opening the log file." << std::endl;
+        return false;
+      }
+
+    // Get the current time, in a pretty string format.
+    time_t now = time(0);
+    tm* localTime = localtime(&now);
+    char buffer[80];
+    strftime(buffer,80, "%a %R %F", localTime);
+
+    // Write the sensor reading and timestamp to the log file
+    //logFile << "Timestamp: " << asctime(localTime);
+    logFile << buffer << ":";
+    logFile << " Moisture: " << rxData->capacitance;
+    logFile << "  ctSuccess: " << rxData->ctSuccess;
+    logFile << "  ctErrors: " << rxData->ctErrors;
+    logFile << "  SensorTime: " << rxData->sensorTime;
+    logFile << std::endl;
+
+    // Close the file
+    logFile.close();
+
+    return true;
+  }
 
