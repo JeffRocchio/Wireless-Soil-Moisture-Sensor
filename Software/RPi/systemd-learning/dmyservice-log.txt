@@ -21,3 +21,69 @@ Thu 11:17 2023-12-07: A test log entry from running service.
 Thu 11:17 2023-12-07: A test log entry from running service.
 Thu 11:17 2023-12-07: A test log entry from running service.
 Thu 11:17 2023-12-07: A test log entry from running service.
+k= 20 Time: Sat 15:25 2023-12-09 || Dummy log entry.
+
+k= 19 Time: Sat 15:25 2023-12-09 || Dummy log entry.
+
+k= 18 Time: Sat 15:25 2023-12-09 || Dummy log entry.
+
+k= 17 Time: Sat 15:26 2023-12-09 || Dummy log entry.
+
+k= 20 Time: Sat 15:28 2023-12-09 || Dummy log entry.
+k= 19 Time: Sat 15:28 2023-12-09 || Dummy log entry.
+k= 18 Time: Sat 15:28 2023-12-09 || Dummy log entry.
+k= 17 Time: Sat 15:29 2023-12-09 || Dummy log entry.
+k= 16 Time: Sat 15:29 2023-12-09 || Dummy log entry.
+k= 15 Time: Sat 15:29 2023-12-09 || Dummy log entry.
+k= 14 Time: Sat 15:30 2023-12-09 || Dummy log entry.
+k= 13 Time: Sat 15:30 2023-12-09 || Dummy log entry.
+k= 12 Time: Sat 15:31 2023-12-09 || Dummy log entry.
+k= 11 Time: Sat 15:31 2023-12-09 || Dummy log entry.
+k= 10 Time: Sat 15:31 2023-12-09 || Dummy log entry.
+k=  9 Time: Sat 15:32 2023-12-09 || Dummy log entry.
+k=  8 Time: Sat 15:32 2023-12-09 || Dummy log entry.
+k=  7 Time: Sat 15:32 2023-12-09 || Dummy log entry.
+k=  6 Time: Sat 15:33 2023-12-09 || Dummy log entry.
+k=  5 Time: Sat 15:33 2023-12-09 || Dummy log entry.
+k=  4 Time: Sat 15:33 2023-12-09 || Dummy log entry.
+k=  3 Time: Sat 15:34 2023-12-09 || Dummy log entry.
+k=  2 Time: Sat 15:34 2023-12-09 || Dummy log entry.
+k=  1 Time: Sat 15:34 2023-12-09 || Dummy log entry.
+ || Posting 20 entries every 10 seconds.
+k= 20 Time: Sat 15:36 2023-12-09 || Dummy log entry.
+k= 19 Time: Sat 15:36 2023-12-09 || Dummy log entry.
+k= 18 Time: Sat 15:37 2023-12-09 || Dummy log entry.
+k= 17 Time: Sat 15:37 2023-12-09 || Dummy log entry.
+k= 16 Time: Sat 15:37 2023-12-09 || Dummy log entry.
+k= 15 Time: Sat 15:38 2023-12-09 || Dummy log entry.
+k= 14 Time: Sat 15:38 2023-12-09 || Dummy log entry.
+k= 13 Time: Sat 15:38 2023-12-09 || Dummy log entry.
+k= 12 Time: Sat 15:39 2023-12-09 || Dummy log entry.
+k= 11 Time: Sat 15:39 2023-12-09 || Dummy log entry.
+k= 10 Time: Sat 15:39 2023-12-09 || Dummy log entry.
+k=  9 Time: Sat 15:40 2023-12-09 || Dummy log entry.
+k=  8 Time: Sat 15:40 2023-12-09 || Dummy log entry.
+k=  7 Time: Sat 15:40 2023-12-09 || Dummy log entry.
+./RPi_DummyService [12-09-2023 rel 01] Started at: Sat 15:40 2023-12-09
+ || Posting 20 entries every 10 seconds.
+k= 20 Time: Sat 15:41 2023-12-09 || Dummy log entry.
+k= 19 Time: Sat 15:41 2023-12-09 || Dummy log entry.
+k= 18 Time: Sat 15:41 2023-12-09 || Dummy log entry.
+k= 17 Time: Sat 15:42 2023-12-09 || Dummy log entry.
+k= 16 Time: Sat 15:42 2023-12-09 || Dummy log entry.
+k= 15 Time: Sat 15:42 2023-12-09 || Dummy log entry.
+k= 14 Time: Sat 15:43 2023-12-09 || Dummy log entry.
+k= 13 Time: Sat 15:43 2023-12-09 || Dummy log entry.
+k= 12 Time: Sat 15:43 2023-12-09 || Dummy log entry.
+k= 11 Time: Sat 15:44 2023-12-09 || Dummy log entry.
+k= 10 Time: Sat 15:44 2023-12-09 || Dummy log entry.
+k=  9 Time: Sat 15:44 2023-12-09 || Dummy log entry.
+k=  8 Time: Sat 15:45 2023-12-09 || Dummy log entry.
+k=  7 Time: Sat 15:45 2023-12-09 || Dummy log entry.
+k=  6 Time: Sat 15:45 2023-12-09 || Dummy log entry.
+k=  5 Time: Sat 15:46 2023-12-09 || Dummy log entry.
+k=  4 Time: Sat 15:46 2023-12-09 || Dummy log entry.
+k=  3 Time: Sat 15:46 2023-12-09 || Dummy log entry.
+k=  2 Time: Sat 15:47 2023-12-09 || Dummy log entry.
+k=  1 Time: Sat 15:47 2023-12-09 || Dummy log entry.
+*** COMPLETED AT Sat 15:47 2023-12-09

@@ -4,10 +4,10 @@
  *  C++ program to create as simple a dummy service as I can thing of.
  *
  */
-#define VERSION "12-07-2023 rel 01"
+#define VERSION "12-09-2023 rel 01"
 
 //#define LOG_FILEPATH "/home/dmyservice-log.txt"
-#define LOG_FILEPATH "/home/jroc/Dropbox/projects/systemd-learning/dmyservice-log.txt"
+#define LOG_FILEPATH "/home/jroc/Dropbox/projects/MoistureSensor/Software/RPi/systemd-learning/dmyservice-log.txt"
 #define LOG_INTERVAL 10
 //#define LOG_INTERVAL 60           // This is in seconds. 60=1 minute.
 //#define LOG_INTERVAL 60 * 5     // Write an entry to the log every 5 minutes.
@@ -16,9 +16,11 @@
 #include <iostream>    // cin, cout, endl
 #include <iomanip>     // format manipulators for use with cout
 #include <string>      // string, getline()
+#include <sstream>     // For ostringstream object.
 #include <cstring>     // strcpy()
 #include <time.h>      // CLOCK_MONOTONIC_RAW, timespec, clock_gettime()
 #include <fstream>     // For writing a log text file.
+#include <unistd.h>    // For the sleep() function.
 
 
 # define TIMEBUFFERSIZE 80
@@ -43,34 +45,50 @@ char currTimeFormatted[TIMEBUFFERSIZE];
 */
 
 string getCurrTimeFormatted();
-bool logData();
+bool logData(string);
 
 
 
 int main(int argc, char** argv) {
+    ostringstream ossConsoleDisplay;
     string currTimeFormatted;
     string progName = argv[0];
+    string consoleDisplay = "";
     time_t lastLog = time(0);
     time_t logInterval = LOG_INTERVAL;
     int k = 20;
 
 
-    // Send something to the terminal just to see what happens.
-    cout << argv[0] << " [" << VERSION << "]" << endl;
-    cout << endl<< "Current Time: " << getCurrTimeFormatted() << endl;
-    cout << "We will post a log entry every " << logInterval << " seconds." << endl;
-    cout << "We will post a total of " << k << " entries." << endl;
-    cout << endl;
+    //   Post 'announcement' of running to the console/systemlog.
+    ossConsoleDisplay << argv[0] << " [" << VERSION << "] " << "Started at: " << getCurrTimeFormatted();
+    cout << ossConsoleDisplay.str();
+    logData(ossConsoleDisplay.str());
+    ossConsoleDisplay.str("");
+    ossConsoleDisplay << " || Posting " << k << " entries every " << logInterval << " seconds.";
+    cout << ossConsoleDisplay.str() << endl;
+    logData(ossConsoleDisplay.str());
+    ossConsoleDisplay.str("");
 
     // Enter infinite loop.
     while(k>0) {
         if(time(0) > lastLog + logInterval) {    // Time to write log entry?
-            logData();
-            cout << "k=" << setw(3) << k << " Time: " << getCurrTimeFormatted() << " || Post a log entry now." << endl;
+            ossConsoleDisplay.str("");
+            ossConsoleDisplay << "k=" << setw(3) << k << " Time: " << getCurrTimeFormatted() << " || Dummy log entry.";
+            //cout << ossConsoleDisplay.str() << endl;
+            logData(ossConsoleDisplay.str());
             lastLog = time(0);
             k--;
+        } else {
+            sleep(logInterval);
         }
     }
+
+    //   Post completed 'announcement.'
+    ossConsoleDisplay.str("");
+    ossConsoleDisplay << "*** COMPLETED AT " << getCurrTimeFormatted();
+    cout << ossConsoleDisplay.str() << endl;
+    logData(ossConsoleDisplay.str());
+    ossConsoleDisplay.str("");
 
     return 0;
 
@@ -95,24 +113,18 @@ string getCurrTimeFormatted() {
     return formattedTime;
 }
 
-bool logData() {
-    string currTime;
+bool logData(string strEntry) {
 
     // Open a file for appending sensor readings
     std::ofstream logFile;
     logFile.open(LOG_FILEPATH, std::ios::app);
 
     if (!logFile.is_open()) {
-        std::cerr << "Error opening the log file." << std::endl;
+        std::cerr << "Error opening the log file: ." LOG_FILEPATH << std::endl;
         return false;
     }
-
-    // Get the current time, in a pretty string format.
-    currTime = getCurrTimeFormatted();
-
     // Write a log entry
-    cout << currTime << "Writing a Log Entry to file.";
-    logFile << currTime << ": A test log entry from running service.";
+    logFile << strEntry;
     logFile << endl;
 
     // Close the file
