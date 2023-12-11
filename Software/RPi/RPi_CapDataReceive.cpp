@@ -7,6 +7,16 @@
  *  /home/jroc/Dropbox/projects/MoistureSensor/CapSensor
  *  Refer to git for version history and associated comments.
  *
+ * NOTE: For how to handle a SIGTERM event coming in from the OS see:
+ * https://www.tutorialspoint.com/cplusplus/cpp_signal_handling.htm
+ *
+ * 12/10/2023-rel01:
+ *      > Modifications to make this program suitable for autostart by user ROOT upon RPi bootup.
+ *        Since console output will go into the journalctl logs I made that output more concise,
+ *        and sensible for that. Created logic for a 'verbose' parameter to be passed in so that
+ *        when manually invoking the program it will have the sort of rich, real-time, terminal
+ *        output it had in versions prior to this one.
+ *
  * 09/27/2023-rel01:
  *      > Implemented writing received sensor readings to a text log file.
  *
@@ -41,7 +51,8 @@
  *      > Initial program to receive, and display on the console, the data structure
  *        populated, and transmitted, by the ATTiny84/nRF24 prototype device.
  */
-#define VERSION "09-27-2023 rel 01"
+#include <cstdint>
+#define VERSION "12-11-2023 rel 01"
 
 #define LOG_FILEPATH "/home/readings.txt"
 //#define LOG_INTERVAL 60           // This is in seconds. 60=1 minute.
@@ -57,6 +68,8 @@
 #include <ctime>       // time()
 #include <iostream>    // cin, cout, endl
 #include <iomanip>     // format manipulators for use with cout
+#include <sstream>     // For ostringstream object.
+#include <cstring>     // std:strcmp()
 #include <string>      // string, getline()
 #include <time.h>      // CLOCK_MONOTONIC_RAW, timespec, clock_gettime()
 #include <fstream>     // For writing a log text file.
@@ -114,6 +127,16 @@ AckPayloadStruct ackPayload;
     */
 struct timespec startTimer, endTimer;
 
+    /* Set via the user specifying the -v parameter when invoking the program
+     * at startup. In the code I am using this to control how much output to
+     * write to the console. The intent is to only output concise journalctl
+     * log entries when the program is running as a service in the background;
+     * but when run 'manually' in a terminal output more info, and in
+     * real-time, for status and debugging purposes. Making this global
+     * because trying to pass it around all over the place would be
+     * unwieldy. There really should be a display object where this could
+     * set. Something for a future enhancement. */
+bool dispVerbose = false;
 
 
 /* =============================================================================
@@ -146,21 +169,35 @@ void showHexOfBytes(unsigned char* b, int iLen);                                
 void displayAck(AckPayloadStruct* pStruct);                                         // display ack response data
 void setAckPayload(uint32_t cmd, uint32_t uliData);                                 // Load the ack response data packet
 bool logData(RxPayloadStruct* rxData);                                              // Write a log entry.
-
+string getCurrTimeFormatted();                                                      // Get current time in a formatted string.
 
 
 int main(int argc, char** argv) {
+    ostringstream ossConsoleDisplay;
+    string currTimeFormatted;
+    string progName = argv[0];
+
+    //   Determine if we are in verbose output display mode or not.
+    for (int i = 0; i < argc; ++i) {
+        if (std::strcmp(argv[i], "-v") == 0) {
+            dispVerbose = true;
+            break;
+        }
+    }
+
+    //   Post 'announcement' of running to the console/systemlog.
+    ossConsoleDisplay << argv[0] << " [" << VERSION << "] " << "Started at: " << getCurrTimeFormatted();
+    cout << ossConsoleDisplay.str() << endl;
+    ossConsoleDisplay.str("");
+
     // perform hardware check
     if (!radio.begin()) {
-        cout << "radio hardware is not responding!!" << endl;
-        return 0; // quit now
+        cout << "ERROR: nRF24 radio hardware is not responding." << endl;
+        return -1; // quit now, with error condition.
     }
 
     // Let these addresses be used for the pair
     uint8_t address[2][6] = {"1Node", "2Node"}; // "2Node is the address of ATTiny's nRF24 radio."
-
-    // print example's name
-    cout << endl<< argv[0] << " [" << VERSION << "]" << endl;
 
     // to use ACK payloads, we need to enable dynamic payload lengths
     radio.enableDynamicPayloads();    // ACK payloads are dynamically sized
@@ -181,8 +218,14 @@ int main(int argc, char** argv) {
     radio.openReadingPipe(1, address[0]); // using pipe 1
 
     // For debugging info
-    // radio.printDetails();        // (smaller) function that prints raw register values
-    radio.printPrettyDetails();     // (larger) function that prints human readable data
+    if (dispVerbose) {
+        radio.printPrettyDetails();     // (larger) function that prints human readable data
+    } else {
+        ossConsoleDisplay << "Radio Initilized: Receive-Addr=" << address[0];
+        ossConsoleDisplay << " | Pwr Level=" << radio.getPALevel();
+        cout << ossConsoleDisplay.str() << endl;
+        ossConsoleDisplay.str("");
+    }
 
     // ready to execute program now
     // setRole(); // calls master() or slave() based on user input <- See below comment.
@@ -232,7 +275,7 @@ void slave() {
     // Working variables.
     time_t lastLog = time(0);
     time_t logInterval = LOG_INTERVAL;
-
+    ostringstream ossConsoleDisplay;
 
     setAckPayload(0, 15000);                               // Populate ack payload struct for next Rx/ack cycle.
     DisplayRxPacket dspRx;                                 // create object to display received packets
@@ -248,11 +291,15 @@ void slave() {
             uint8_t bytes = radio.getDynamicPayloadSize();              // <<-- NOTE: Compilier says we never use this anywhere. Myes, get it's size
             radio.read(&rxBytes[0], sizeof(rxBytes));                   // fetch payload from RX FIFO
             loadRxStruct(&rxPayload, rxBytes);                          // Manually' load rxPayload structure from the received bytes array.
-            dspRx.displayRxResults(&rxPayload, true);                   // display received transmission info
+            if(dispVerbose) dspRx.displayRxResults(&rxPayload, true);   // display received transmission info, if verbose display is true.
             setAckPayload(0, 15000);                                    // Populate ack payload struct for next Rx/ack cycle.
             radio.writeAckPayload(1, &ackPayload, sizeof(ackPayload));  // Load the ACK payload into writing pipe for next cycle.
             if(time(0) > lastLog + logInterval) {                       // Time to write log entry?
                 logData(&rxPayload);
+                ossConsoleDisplay.str("");
+                ossConsoleDisplay << "Writing Sensor Readings to Log File.";
+                cout << ossConsoleDisplay.str() << endl;
+                ossConsoleDisplay.str("");
                 lastLog = time(0);
             } //BOTTOM of IF[test if time to write log entry]
         } // BOTTOM of IF[test if payload received]]
@@ -264,7 +311,7 @@ void slave() {
            user to quite or initiate another try.
         */
     radio.stopListening();                                              // recommended idle behavior is TX mode, tho we never get to this line.
-    cout << "Just executed radio.stopListening(); ";                    // But IF we do, notify user of this fact.
+    cout << "Just executed radio.stopListening() inside of slave()";    // But IF we do, notify user of this fact.
 } // BOTTOM of slave()
 
 
@@ -479,19 +526,13 @@ bool logData(RxPayloadStruct* rxData) {
     logFile.open(LOG_FILEPATH, std::ios::app);
 
     if (!logFile.is_open()) {
-        std::cerr << "Error opening the log file." << std::endl;
+        std::cerr << "Error opening the log file:" << LOG_FILEPATH << std::endl;
         return false;
       }
 
-    // Get the current time, in a pretty string format.
-    time_t now = time(0);
-    tm* localTime = localtime(&now);
-    char buffer[80];
-    strftime(buffer,80, "%a %R %F", localTime);
-
     // Write the sensor reading and timestamp to the log file
     //logFile << "Timestamp: " << asctime(localTime);
-    logFile << buffer << ":";
+    logFile << getCurrTimeFormatted() << ":";
     logFile << " Moisture: " << rxData->capacitance;
     logFile << "  ctSuccess: " << rxData->ctSuccess;
     logFile << "  ctErrors: " << rxData->ctErrors;
@@ -502,5 +543,39 @@ bool logData(RxPayloadStruct* rxData) {
     logFile.close();
 
     return true;
-  }
+}
+
+string getCurrTimeFormatted() {
+    string formattedTime;
+
+    // Get the current time, in a pretty string format.
+    time_t now = time(0);
+    tm* localTime = localtime(&now);
+    char buffer[80];
+    strftime(buffer,80, "%a %R %F", localTime);
+    formattedTime = buffer;
+    return formattedTime;
+}
+
+/* BEGIN TO-DOs ===================================================================================
+/*
+ *      TODO: Work out the radio power level display for the log entries. I am calling library
+ * funcion: uint8_t RF24::getPALevel(void) to get the power level. But when I try to display I
+ * get a blank space on the screen. I think this is down to the fact that at present I am setting
+ * the power level to it's lowest value. In the data sheet the RF_SETUP register bits for the
+ * power level use the binary value of '00' for the lowest level. So when interperted as a
+ * string in my code for the display output this is seen as an empty string - just contains the
+ * value \0. So I should change the power level and see what I get. REF: Specs, pg-26.
+ *
+ *      TODO: Make the radio power level an input parameter on the command line.
+ *
+ *      TODO: Implement handling for the SIGTERM event so that we have an orderly shutdown,
+ * with a log entry, for Control-C and any OS initiated shutdown events (like sudo shutdown or
+ * service stop).NOTE: For how to handle a SIGTERM event coming in from the OS see:
+ * https://www.tutorialspoint.com/cplusplus/cpp_signal_handling.htm
+ *
+ *
+ *
+ *
+ END TO-DOs ==================================================================================== */
 

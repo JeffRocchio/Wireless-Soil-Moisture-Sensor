@@ -1,0 +1,12 @@
+[Unit]
+Description=RPi dummy service
+After=multi-user.target
+
+[Service]
+ExecStart=/home/rf24libs/RF24/examples_linux/build/RPi_DummyService
+Type=simple
+#RestartSec=20
+
+[Install]
+WantedBy=multi-user.target
+#WantedBy=default.target

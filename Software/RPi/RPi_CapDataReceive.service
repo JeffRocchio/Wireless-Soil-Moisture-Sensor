@@ -1,0 +1,11 @@
+[Unit]
+Description=Moisture Sensor Server
+After=multi-user.target
+
+[Service]
+ExecStart=/home/nrf24libs/RF24/examples_linux/build/RPi_CapDataReceive
+Type=simple
+#Restart=20
+
+[Install]
+WantedBy=multi-user.target
